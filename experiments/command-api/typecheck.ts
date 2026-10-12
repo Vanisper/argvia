@@ -26,13 +26,15 @@ export function verifyTypes(): void {
       expectTypeOf(options.port).toEqualTypeOf<number>()
       expectTypeOf(options.mode).toEqualTypeOf<'dev' | 'prod'>()
       expectTypeOf(options.token).toEqualTypeOf<string | undefined>()
-      expectTypeOf(options.verbose).toEqualTypeOf<boolean>()
+      expectTypeOf(options.verbose).toEqualTypeOf<boolean | undefined>()
       expectTypeOf(options.retries).toEqualTypeOf<number>()
 
       // @ts-expect-error 未声明的选项不可访问
       expectTypeOf(options.missing)
       // @ts-expect-error 可选字符串不能作为必有字符串使用
       expectTypeOf<string>(options.token)
+      // @ts-expect-error 可选布尔不能作为必有布尔使用
+      expectTypeOf<boolean>(options.verbose)
 
       return { entry: args.entry, port: options.port }
     },
@@ -68,7 +70,7 @@ export function verifyTypes(): void {
     run({ args, options }) {
       expectTypeOf(args).toEqualTypeOf<Record<never, never>>()
       expectTypeOf(options.token).toEqualTypeOf<string | undefined>()
-      expectTypeOf(options.verbose).toEqualTypeOf<boolean>()
+      expectTypeOf(options.verbose).toEqualTypeOf<boolean | undefined>()
       expectTypeOf(options.retries).toEqualTypeOf<number>()
     },
   })
@@ -118,12 +120,18 @@ export function verifyTypes(): void {
       requiredMode: option.enum(['dev', 'prod'], { required: true }),
       optionalPort: option.number(),
       defaultLabel: option.string({ default: 'application' }),
+      enabled: option.boolean({ default: true }),
+      disabled: option.boolean({ default: false }),
+      optionalFlag: option.boolean({ description: '可选开关' }),
     },
     run({ options }) {
       expectTypeOf(options.optionalMode).toEqualTypeOf<'dev' | 'prod' | undefined>()
       expectTypeOf(options.requiredMode).toEqualTypeOf<'dev' | 'prod'>()
       expectTypeOf(options.optionalPort).toEqualTypeOf<number | undefined>()
       expectTypeOf(options.defaultLabel).toEqualTypeOf<string>()
+      expectTypeOf(options.enabled).toEqualTypeOf<boolean>()
+      expectTypeOf(options.disabled).toEqualTypeOf<boolean>()
+      expectTypeOf(options.optionalFlag).toEqualTypeOf<boolean | undefined>()
     },
   })
 
@@ -177,6 +185,14 @@ export function verifyTypes(): void {
   option.number({ default: '3000' })
   // @ts-expect-error 显式输入要求与默认值互斥
   option.number({ required: true, default: 3000 })
+  // @ts-expect-error 布尔默认值不能使用字符串
+  option.boolean({ default: 'false' })
+  // @ts-expect-error 布尔开关没有必填能力
+  option.boolean({ required: true })
+  // @ts-expect-error 布尔默认值与显式输入要求互斥
+  option.boolean({ required: true, default: false })
+  // @ts-expect-error explicit undefined 不符合默认值契约
+  option.boolean({ default: undefined })
   defineCommand({
     options: { token: option.string() },
     // @ts-expect-error 处理函数不能把可选选项收窄为必有字符串

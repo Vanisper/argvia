@@ -149,7 +149,7 @@ export interface ResolvedGroup extends CommandMeta {
 
 export type ResolvedCommand = ResolvedLeaf | ResolvedGroup
 
-export type ValueConfig = RequiredConfig | DefaultConfig<string | number> | OptionalConfig
+export type ValueConfig = RequiredConfig | DefaultConfig<string | number | boolean> | OptionalConfig
 export type InputFailure = Extract<RunResult, { kind: 'invalid-input' }>
 export type ParsedInput = { readonly kind: 'parsed', readonly context: RuntimeContext } | InputFailure
 export type ParsedValue = { readonly ok: true, readonly value: unknown } | { readonly ok: false, readonly message: string }

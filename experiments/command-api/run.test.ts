@@ -42,7 +42,7 @@ describe('命令执行公共接口', () => {
         token: undefined,
         retries: undefined,
         channel: undefined,
-        verbose: false,
+        verbose: undefined,
       },
     }
 
@@ -51,7 +51,7 @@ describe('命令执行公共接口', () => {
     expect(handler).toHaveBeenCalledExactlyOnceWith(context)
   })
 
-  it('缺省值覆盖数值和枚举，可选字段保留 undefined，布尔值为 false', async () => {
+  it('缺省值覆盖数值和枚举，无默认值的可选字段保留 undefined', async () => {
     const { tool } = createTool()
 
     expect(await run(tool, { argv: ['deploy', 'app.ts'] })).toEqual({
@@ -64,10 +64,22 @@ describe('命令执行公共接口', () => {
           token: undefined,
           retries: undefined,
           channel: undefined,
-          verbose: false,
+          verbose: undefined,
         },
       },
     })
+  })
+
+  it.each([false, true])('布尔开关省略时采用显式默认值 %s，输入时得到 true', async (defaultValue) => {
+    const command = defineCommand({
+      options: { verbose: option.boolean({ default: defaultValue }) },
+      run: context => context.options,
+    })
+
+    expect(await run(command, { argv: [] }))
+      .toEqual({ kind: 'executed', value: { verbose: defaultValue } })
+    expect(await run(command, { argv: ['--verbose'] }))
+      .toEqual({ kind: 'executed', value: { verbose: true } })
   })
 
   it('布尔开关不消耗后续位置参数，空字符串仍是字符串选项的有效值', async () => {
@@ -168,6 +180,9 @@ describe('命令执行公共接口', () => {
     { argv: ['deploy', 'app.ts', '--no-verbose'], code: 'unknown-option', path: ['tool', 'deploy'] },
     { argv: ['deploy', 'app.ts', '--port=1', '--port', '2'], code: 'duplicate-option', path: ['tool', 'deploy'] },
     { argv: ['deploy', 'app.ts', '--verbose', '--verbose'], code: 'duplicate-option', path: ['tool', 'deploy'] },
+    { argv: ['deploy', 'app.ts', '--verbose=true'], code: 'invalid-value', path: ['tool', 'deploy'] },
+    { argv: ['deploy', 'app.ts', '--verbose=false'], code: 'invalid-value', path: ['tool', 'deploy'] },
+    { argv: ['deploy', 'app.ts', '--verbose='], code: 'invalid-value', path: ['tool', 'deploy'] },
     { argv: ['deploy', 'app.ts', '--port'], code: 'missing-value', path: ['tool', 'deploy'] },
     { argv: ['deploy'], code: 'missing-required', path: ['tool', 'deploy'] },
     { argv: ['deploy', 'app.ts', 'release', 'extra'], code: 'extra-argument', path: ['tool', 'deploy'] },
@@ -284,6 +299,18 @@ describe('命令执行公共接口', () => {
       .toMatchObject({ kind: 'invalid-input', diagnostic: { code: 'invalid-value' } })
   })
 
+  it('布尔描述器保存默认值，不受之后修改配置对象影响', async () => {
+    const config = { default: false }
+    const verbose = option.boolean(config)
+    const command = defineCommand({ options: { verbose }, run: context => context.options })
+
+    config.default = true
+
+    expect(Object.isFrozen(verbose)).toBe(true)
+    expect(await run(command, { argv: [] }))
+      .toEqual({ kind: 'executed', value: { verbose: false } })
+  })
+
   it('拒绝复制后改写规则的描述器，避免携带旧类型的规则进入处理函数', () => {
     const port = { ...option.number({ default: 3000 }), kind: 'string' as const, default: 'text' }
 
@@ -314,6 +341,27 @@ describe('命令执行公共接口', () => {
       },
     },
     { name: '非有限数值默认值', create: () => option.number({ default: Number.POSITIVE_INFINITY }) },
+    {
+      name: '非布尔默认值',
+      create: () => {
+        // @ts-expect-error 验证绕过类型检查时的定义错误
+        return option.boolean({ default: 'false' })
+      },
+    },
+    {
+      name: '布尔默认值显式为 undefined',
+      create: () => {
+        // @ts-expect-error 验证未启用 exactOptionalPropertyTypes 的调用者同样会得到定义错误
+        return option.boolean({ default: undefined })
+      },
+    },
+    {
+      name: '布尔开关不支持 required',
+      create: () => {
+        // @ts-expect-error 本轮布尔开关没有必填能力
+        return option.boolean({ required: true })
+      },
+    },
     {
       name: '重复位置参数名称',
       create: () => defineCommand({ args: [argument.string('entry'), argument.string('entry')], run() {} }),

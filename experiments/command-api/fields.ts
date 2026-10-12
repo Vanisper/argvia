@@ -1,7 +1,6 @@
 import type {
   Argument,
   DefaultConfig,
-  FieldConfig,
   FieldRules,
   Option,
   OptionalConfig,
@@ -31,6 +30,8 @@ function createField(
   const hasDefault = Object.hasOwn(config, 'default')
   if (config.required && hasDefault)
     throw new DefinitionError('required 与 default 不能同时使用')
+  if (kind === 'boolean' && config.required)
+    throw new DefinitionError('布尔开关不支持 required')
 
   if (kind === 'enum') {
     if (!choices?.length || choices.some(value => typeof value !== 'string'))
@@ -41,9 +42,11 @@ function createField(
 
   if (hasDefault) {
     const value = config.default
-    const valid = kind === 'number'
-      ? typeof value === 'number' && Number.isFinite(value)
-      : typeof value === 'string' && (kind !== 'enum' || choices!.includes(value))
+    const valid = kind === 'boolean'
+      ? typeof value === 'boolean'
+      : kind === 'number'
+        ? typeof value === 'number' && Number.isFinite(value)
+        : typeof value === 'string' && (kind !== 'enum' || choices!.includes(value))
     if (!valid)
       throw new DefinitionError(`无效的 ${kind} 默认值`)
   }
@@ -52,7 +55,7 @@ function createField(
     kind,
     required: config.required === true,
     ...(config.description !== undefined ? { description: config.description } : {}),
-    ...(hasDefault ? { default: config.default as string | number } : {}),
+    ...(hasDefault ? { default: config.default as string | number | boolean } : {}),
     ...(choices ? { choices: Object.freeze([...choices]) } : {}),
   })
 }
@@ -81,14 +84,15 @@ function numberOption(config?: ValueConfig): Option<unknown> {
   return createField('number', config)
 }
 
-/** 定义布尔开关，省略输入时为 false */
-function booleanOption(config: FieldConfig = {}): Option<boolean> {
-  return register({
-    kind: 'boolean',
-    required: false,
-    default: false,
-    ...(config.description !== undefined ? { description: config.description } : {}),
-  })
+/**
+ * 定义布尔开关
+ *
+ * @description 不接受取值；显式输入为 true，省略时采用默认值或得到 undefined
+ */
+function booleanOption(config: DefaultConfig<boolean>): Option<boolean>
+function booleanOption(config?: OptionalConfig): Option<boolean | undefined>
+function booleanOption(config?: ValueConfig): Option<unknown> {
+  return createField('boolean', config)
 }
 
 /**

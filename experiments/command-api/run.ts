@@ -80,7 +80,7 @@ function parseInput(
 ): ParsedInput {
   const options = new Map<string, unknown>()
   for (const [name, field] of Object.entries(command.options))
-    options.set(name, field.default ?? (field.kind === 'boolean' ? false : undefined))
+    options.set(name, field.default)
 
   const suppliedOptions = new Set<string>()
   const positional: string[] = []
