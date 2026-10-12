@@ -1,0 +1,15 @@
+minimumReleaseAgeExcludePrune: true
+trustPolicy: no-downgrade
+shellEmulator: true
+
+allowBuilds:
+  esbuild: true
+
+catalogs:
+  dev:
+    '@antfu/eslint-config': 9.5.1
+    '@types/node': 22.20.5
+    eslint: 10.12.0
+    tsx: 4.23.15
+    typescript: 5.9.3
+    vitest: 5.0.4
