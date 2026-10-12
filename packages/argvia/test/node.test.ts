@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
-const fixture = fileURLToPath(new URL('./main-fixture.ts', import.meta.url))
+const fixture = fileURLToPath(new URL('./node-fixture.ts', import.meta.url))
 
 describe('runMain 终端契约', () => {
   it.each([

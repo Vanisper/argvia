@@ -1,0 +1,25 @@
+// @env node
+import assert from 'node:assert/strict'
+import process from 'node:process'
+
+async function main() {
+  const { argument, defineCommand } = await import('argvia')
+  const { runMain } = await import('argvia/node')
+  let action
+  const command = defineCommand({
+    args: [argument.string('action', { required: true })],
+    run({ args }) {
+      action = args.action
+    },
+  })
+
+  await runMain(command)
+  assert.equal(action, 'ready')
+  assert.equal(process.exitCode, 0)
+  process.stdout.write('进程入口消费通过\n')
+}
+
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})

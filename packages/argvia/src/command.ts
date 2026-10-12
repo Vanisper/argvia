@@ -6,10 +6,10 @@ import type {
   Option,
   ResolvedCommand,
   RuntimeContext,
-} from './types'
-import { COMMAND_IDENTIFIER } from './constants'
-import { DefinitionError } from './errors'
-import { assertDescriptor } from './fields'
+} from './types.js'
+import { COMMAND_IDENTIFIER } from './constants.js'
+import { DefinitionError } from './errors.js'
+import { assertDescriptor } from './fields.js'
 
 const definitions = new WeakMap<Command, ResolvedCommand>()
 

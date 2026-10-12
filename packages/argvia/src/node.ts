@@ -1,7 +1,7 @@
 // @env node
-import type { Command } from './types'
+import type { Command } from './types.js'
 import process from 'node:process'
-import { run } from './run'
+import { run } from './run.js'
 
 /**
  * 使用进程参数执行命令，并输出帮助或错误

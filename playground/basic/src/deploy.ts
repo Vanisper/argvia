@@ -1,7 +1,7 @@
 // @env node
 import process from 'node:process'
-import { argument, defineCommand } from './index'
-import { sharedOptions } from './shared-options'
+import { argument, defineCommand } from 'argvia'
+import { sharedOptions } from './shared-options.js'
 
 export const deploy = defineCommand({
   description: '展示解析结果，验证部署命令的调用体验',

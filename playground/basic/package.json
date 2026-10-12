@@ -1,0 +1,17 @@
+{
+  "name": "@argvia/playground-basic",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx src/example.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": { "argvia": "workspace:*" },
+  "devDependencies": {
+    "@types/node": "catalog:dev",
+    "tsx": "catalog:dev",
+    "typescript": "catalog:dev"
+  }
+}

@@ -1,5 +1,5 @@
+import { argument, defineCommand, DefinitionError, option, run } from 'argvia'
 import { describe, expect, it, vi } from 'vitest'
-import { argument, defineCommand, DefinitionError, option, run } from './index'
 
 function createTool() {
   const handler = vi.fn()
@@ -358,7 +358,7 @@ describe('命令执行公共接口', () => {
     {
       name: '布尔开关不支持 required',
       create: () => {
-        // @ts-expect-error 本轮布尔开关没有必填能力
+        // @ts-expect-error 布尔开关没有必填能力
         return option.boolean({ required: true })
       },
     },

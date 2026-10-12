@@ -1,4 +1,4 @@
-import type { FieldRules, ResolvedCommand } from './types'
+import type { FieldRules, ResolvedCommand } from './types.js'
 
 function describeField(field: FieldRules): string {
   const details: string[] = []

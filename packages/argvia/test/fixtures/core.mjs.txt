@@ -1,0 +1,34 @@
+// @env node
+import assert from 'node:assert/strict'
+import { register } from 'node:module'
+import process from 'node:process'
+
+async function main() {
+  register('./deny-builtins.mjs', import.meta.url)
+  await assert.rejects(import('node:process'), /核心入口不能加载 Node 内建模块/u)
+
+  const core = await import('argvia')
+  assert.equal('runMain' in core, false)
+  const command = core.defineCommand({
+    options: {
+      verbose: core.option.boolean(),
+      force: core.option.boolean({ default: false }),
+    },
+    run: context => context.options,
+  })
+  assert.deepEqual(await core.run(command, { argv: [] }), {
+    kind: 'executed',
+    value: { verbose: undefined, force: false },
+  })
+  assert.deepEqual(await core.run(command, { argv: ['--verbose'] }), {
+    kind: 'executed',
+    value: { verbose: true, force: false },
+  })
+  await assert.rejects(import('argvia/dist/index.js'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
+  process.stdout.write('核心入口消费通过\n')
+}
+
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})

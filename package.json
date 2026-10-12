@@ -1,22 +1,24 @@
 {
-  "name": "argvia",
+  "name": "argvia-workspace",
   "type": "module",
   "version": "0.0.0",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "description": "面向 TypeScript 的 CLI 命令定义基础库",
   "scripts": {
-    "dev": "tsx experiments/command-api/example.ts",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "check": "pnpm lint && pnpm typecheck && pnpm test"
+    "dev": "turbo run dev --filter=@argvia/playground-basic --",
+    "build": "turbo run build",
+    "lint": "turbo run lint lint:repo",
+    "lint:repo": "eslint eslint.config.js package.json pnpm-workspace.yaml turbo.json tsconfig.base.json docs",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "check": "turbo run build lint lint:repo typecheck test"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:dev",
     "@types/node": "catalog:dev",
     "eslint": "catalog:dev",
-    "tsx": "catalog:dev",
+    "turbo": "catalog:dev",
     "typescript": "catalog:dev",
     "vitest": "catalog:dev"
   }

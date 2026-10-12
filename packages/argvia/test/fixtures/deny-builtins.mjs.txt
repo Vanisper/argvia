@@ -1,0 +1,9 @@
+// @env node
+import { isBuiltin } from 'node:module'
+
+/** 拒绝加载 Node 内建模块，验证核心入口的完整依赖图 */
+export async function resolve(specifier, context, nextResolve) {
+  if (isBuiltin(specifier))
+    throw new Error(`核心入口不能加载 Node 内建模块：${specifier}`)
+  return nextResolve(specifier, context)
+}

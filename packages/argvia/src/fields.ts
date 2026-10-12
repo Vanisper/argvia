@@ -6,8 +6,8 @@ import type {
   OptionalConfig,
   RequiredConfig,
   ValueConfig,
-} from './types'
-import { DefinitionError } from './errors'
+} from './types.js'
+import { DefinitionError } from './errors.js'
 
 const descriptors = new WeakSet<object>()
 

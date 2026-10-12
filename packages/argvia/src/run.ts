@@ -9,10 +9,10 @@ import type {
   RunConfig,
   RunResult,
   SplitOption,
-} from './types'
-import { getDefinition } from './command'
-import { DECIMAL_NUMBER } from './constants'
-import { renderHelp } from './help'
+} from './types.js'
+import { getDefinition } from './command.js'
+import { DECIMAL_NUMBER } from './constants.js'
+import { renderHelp } from './help.js'
 
 function invalidInput(
   path: readonly string[],

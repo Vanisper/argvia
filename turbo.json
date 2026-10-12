@@ -1,0 +1,14 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "cacheDir": ".turbo/cache",
+  "agentGuidance": false,
+  "globalDependencies": ["tsconfig.base.json"],
+  "tasks": {
+    "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
+    "lint": { "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/eslint.config.js"] },
+    "typecheck": { "dependsOn": ["build", "^build"] },
+    "test": { "dependsOn": ["build", "^build"] },
+    "dev": { "dependsOn": ["^build"], "cache": false, "persistent": true },
+    "//#lint:repo": { "inputs": ["eslint.config.js", "package.json", "pnpm-workspace.yaml", "turbo.json", "tsconfig.base.json", "docs/**"] }
+  }
+}

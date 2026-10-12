@@ -1,0 +1,72 @@
+import type {
+  Command,
+  DefaultConfig,
+  OptionalConfig,
+  RequiredConfig,
+  RunConfig,
+  RunResult,
+} from 'argvia'
+import { defineCommand, option, run } from 'argvia'
+import { runMain } from 'argvia/node'
+// @ts-expect-error 核心入口不导出进程适配器
+import { runMain as coreRunMain } from 'argvia'
+
+function expectType<Value>(value: Value): void {
+  void value
+}
+
+interface ProjectConfig {
+  includeTests?: boolean
+  retries?: number
+}
+
+interface FinalConfig {
+  includeTests: boolean
+  retries: number
+}
+
+const optional: OptionalConfig = { description: '配置合并时保留缺省状态' }
+const defaultFalse: DefaultConfig<boolean> = { default: false }
+const required: RequiredConfig = { required: true }
+const config: ProjectConfig = { includeTests: true, retries: 4 }
+
+const command: Command = defineCommand({
+  options: {
+    includeTests: option.boolean(optional),
+    force: option.boolean(defaultFalse),
+    retries: option.number(),
+    target: option.string(required),
+  },
+  run({ options }) {
+    expectType<boolean | undefined>(options.includeTests)
+    expectType<boolean>(options.force)
+    expectType<number | undefined>(options.retries)
+    expectType<string>(options.target)
+
+    // @ts-expect-error 无默认值的布尔选项不能作为必有布尔值使用
+    expectType<boolean>(options.includeTests)
+    // @ts-expect-error 未声明的选项不可访问
+    expectType(options.missing)
+
+    const resolved: FinalConfig = {
+      includeTests: options.includeTests ?? config.includeTests ?? false,
+      retries: options.retries ?? config.retries ?? 0,
+    }
+    expectType<boolean>(resolved.includeTests)
+    expectType<number>(resolved.retries)
+    // @ts-expect-error CLI 缺省值需要完成配置合并才能作为最终配置
+    const unresolved: FinalConfig = options
+    return resolved
+  },
+})
+
+const input: RunConfig = { argv: ['--target=application'] }
+expectType<Promise<RunResult>>(run(command, input))
+expectType<Promise<void>>(runMain(command))
+
+// @ts-expect-error 布尔默认值不能使用字符串
+option.boolean({ default: 'false' })
+// @ts-expect-error 布尔开关不支持 required
+option.boolean({ required: true })
+// @ts-expect-error 默认值不能显式为 undefined
+option.boolean({ default: undefined })

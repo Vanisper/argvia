@@ -2,6 +2,10 @@ minimumReleaseAgeExcludePrune: true
 trustPolicy: no-downgrade
 shellEmulator: true
 
+packages:
+  - packages/*
+  - playground/*
+
 allowBuilds:
   esbuild: true
 
@@ -11,5 +15,6 @@ catalogs:
     '@types/node': 22.20.5
     eslint: 10.12.0
     tsx: 4.23.15
+    turbo: 2.11.7
     typescript: 5.9.3
     vitest: 5.0.4

@@ -1,5 +1,7 @@
 // @env node
-import { argument, defineCommand, runMain } from './index'
+import { argument, defineCommand } from 'argvia'
+
+import { runMain } from 'argvia/node'
 
 const app = defineCommand({
   name: 'fixture',

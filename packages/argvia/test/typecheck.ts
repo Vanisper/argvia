@@ -1,8 +1,8 @@
-import type { Argument, Option } from './types'
+import type { Argument, Option } from 'argvia'
+import { argument, defineCommand, option } from 'argvia'
 import { expectTypeOf } from 'vitest'
-import { argument, defineCommand, option } from './index'
 
-/** 检查候选接口的类型契约，负例只参与编译检查 */
+/** 检查命令定义的类型契约，负例只参与编译检查 */
 export function verifyTypes(): void {
   const sharedOptions = {
     token: option.string(),
@@ -163,15 +163,15 @@ export function verifyTypes(): void {
 
   // @ts-expect-error 分组与叶子处理函数不可混合
   defineCommand({ commands: { deploy }, run() {} })
-  // @ts-expect-error 本轮分组不提供继承选项
+  // @ts-expect-error 分组不提供继承选项
   defineCommand({ commands: { deploy }, options: sharedOptions })
   // @ts-expect-error 子命令必须是经过 defineCommand 处理的定义
   defineCommand({ commands: { raw: { run() {} } } })
   // @ts-expect-error 缺少处理函数和子命令的定义不能执行
   defineCommand({ description: '未完成的命令' })
-  // @ts-expect-error explicit undefined 不符合本实验的 exactOptionalPropertyTypes 契约
+  // @ts-expect-error explicit undefined 不符合exactOptionalPropertyTypes 契约
   defineCommand({ args: undefined, run() {} })
-  // @ts-expect-error explicit undefined 不符合本实验的 exactOptionalPropertyTypes 契约
+  // @ts-expect-error explicit undefined 不符合exactOptionalPropertyTypes 契约
   defineCommand({ options: undefined, run() {} })
   // @ts-expect-error 位置参数必须使用描述器
   defineCommand({ args: ['entry'], run() {} })
