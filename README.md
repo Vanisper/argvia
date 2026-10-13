@@ -68,7 +68,8 @@ pnpm exec turbo run build --filter=@argvia/node
 | [`playground/java-run`](playground/java-run/) | 组合 core 与 Node 包，演示类型化命令、配置覆盖与参数转发 |
 | [`docs/api.md`](docs/api.md) | 当前 API 与输入行为 |
 | [`docs/design.md`](docs/design.md) | 模块边界、类型约束与后续设计问题 |
-| [`docs/input-contract.md`](docs/input-contract.md) | 字段拼写、重复字符串、透传和默认命令的组合契约 |
+| [`docs/input-contract.md`](docs/input-contract.md) | 字段拼写、布尔取值、重复字符串、透传和默认命令的组合契约 |
+| [`docs/execution-contract.md`](docs/execution-contract.md) | 普通业务值、显式退出、预期失败与进程状态 |
 | [`docs/java-run.md`](docs/java-run.md) | 可运行的 java-run 示例、输出说明与代码阅读路径 |
 
-支持显式长选项拼写、有序重复字符串、原样透传和默认子命令，java-run 样本覆盖三种命令的组合使用。Node 进程入口已验证，Bun 的兼容性仍待验证。
+支持显式长选项拼写、布尔 true/false、有序重复字符串、原样透传和默认子命令。java-run 样本展示配置合并、领域校验以及通过 `exit` 和 `CommandError` 传递业务状态。Node 进程入口已验证，Bun 的兼容性仍待验证。

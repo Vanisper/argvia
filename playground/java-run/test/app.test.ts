@@ -3,13 +3,13 @@ import { run } from '@argvia/core'
 import { describe, expect, it, vi } from 'vitest'
 import { createJavaRunCommand } from '../src/app.js'
 
-function createApplication(project: ProjectConfig = {}) {
+function createApplication(project: ProjectConfig = {}, environment = { cwd: '/project' }) {
   const readProjectConfig = vi.fn(async (_cwd: string) => project)
-  const launch = vi.fn((request: LaunchConfig) => request)
+  const launch = vi.fn((_request: LaunchConfig): number | Promise<number> => 0)
   const plan = vi.fn((request: LaunchConfig) => request)
   const initialize = vi.fn((request: InitRequest) => request)
   const services = { readProjectConfig, launch, plan, initialize }
-  const command = createJavaRunCommand(services, { cwd: '/project' })
+  const command = createJavaRunCommand(services, environment)
   return { command, services }
 }
 
@@ -36,7 +36,9 @@ describe('java-run 配置组合', () => {
       buildArgs: [],
     }
 
-    expect(await run(command, { argv: [action] })).toEqual({ kind: 'executed', value: request })
+    expect(await run(command, { argv: [action] })).toEqual(action === 'run'
+      ? { kind: 'exit', exitCode: 0, commandPath: ['java-run', 'run'] }
+      : { kind: 'executed', value: request })
     expect(services.readProjectConfig).toHaveBeenCalledExactlyOnceWith('/project')
     const selected = action === 'run' ? services.launch : services.plan
     const other = action === 'run' ? services.plan : services.launch
@@ -80,7 +82,9 @@ describe('java-run 配置组合', () => {
       '--build-command=/tools/gradle',
     ]
 
-    expect(await run(command, { argv })).toEqual({ kind: 'executed', value: request })
+    expect(await run(command, { argv })).toEqual(action === 'run'
+      ? { kind: 'exit', exitCode: 0, commandPath: ['java-run', 'run'] }
+      : { kind: 'executed', value: request })
     expect(services.readProjectConfig).toHaveBeenCalledExactlyOnceWith('/other-project')
     expect(action === 'run' ? services.launch : services.plan).toHaveBeenCalledExactlyOnceWith(request)
     expect(project).toEqual({
@@ -92,6 +96,17 @@ describe('java-run 配置组合', () => {
     })
   })
 
+  it.each(['run', 'plan'])('显式 false 覆盖项目配置中的 true：%s', async (action) => {
+    const { command, services } = createApplication({ includeTests: true })
+    const result = await run(command, { argv: [action, '--include-tests=false'] })
+
+    expect(result).toMatchObject(action === 'run'
+      ? { kind: 'exit', exitCode: 0, commandPath: ['java-run', 'run'] }
+      : { kind: 'executed', value: { includeTests: false } })
+    expect(services.readProjectConfig).toHaveBeenCalledExactlyOnceWith('/project')
+    expect(action === 'run' ? services.launch : services.plan).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ includeTests: false }))
+  })
+
   it.each([
     { project: {}, description: '空配置' },
     { project: { includeTests: false }, description: '配置中的 false' },
@@ -99,37 +114,41 @@ describe('java-run 配置组合', () => {
     const { command, services } = createApplication(project)
 
     expect(await run(command, { argv: ['run'] })).toEqual({
-      kind: 'executed',
-      value: {
-        cwd: '/project',
-        buildTool: 'auto',
-        build: 'auto',
-        module: undefined,
-        mainClass: undefined,
-        includeTests: false,
-        javaCommand: undefined,
-        buildCommand: undefined,
-        jvmArgs: [],
-        applicationArgs: [],
-        buildArgs: [],
-      },
+      kind: 'exit',
+      exitCode: 0,
+      commandPath: ['java-run', 'run'],
     })
-    expect(services.launch).toHaveBeenCalledOnce()
+    expect(services.launch).toHaveBeenCalledExactlyOnceWith({
+      cwd: '/project',
+      buildTool: 'auto',
+      build: 'auto',
+      module: undefined,
+      mainClass: undefined,
+      includeTests: false,
+      javaCommand: undefined,
+      buildCommand: undefined,
+      jvmArgs: [],
+      applicationArgs: [],
+      buildArgs: [],
+    })
   })
 
   it('显式请求 auto 时覆盖保存的构建工具与策略', async () => {
-    const { command } = createApplication({ buildTool: 'maven', build: 'none' })
+    const { command, services } = createApplication({ buildTool: 'maven', build: 'none' })
 
     expect(await run(command, { argv: ['run', '--tool=auto', '--build=auto'] })).toMatchObject({
-      kind: 'executed',
-      value: { buildTool: 'auto', build: 'auto' },
+      kind: 'exit',
+      exitCode: 0,
+      commandPath: ['java-run', 'run'],
     })
+    expect(services.launch).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ buildTool: 'auto', build: 'auto' }))
   })
 
   it.each([
     { argv: ['init'], force: false, includeTests: false },
     { argv: ['init', '--force'], force: true, includeTests: false },
     { argv: ['init', '--include-tests'], force: false, includeTests: true },
+    { argv: ['init', '--force=false', '--include-tests=false'], force: false, includeTests: false },
   ])('init 跳过旧配置，局部 force 得到显式默认值：$argv', async ({ argv, force, includeTests }) => {
     const { command, services } = createApplication({
       buildTool: 'gradle',
@@ -180,7 +199,7 @@ describe('java-run 配置组合', () => {
       expect(service).not.toHaveBeenCalled()
   })
 
-  it.each(['run', 'plan', 'init'])('交错重复选项按各自输入顺序组合，保留等号与空值：%s', async (action) => {
+  it.each(['run', 'plan', 'init'])('交错重复选项按各自输入顺序组合，保留等号与应用参数空值：%s', async (action) => {
     const project = Object.freeze({
       jvmArgs: Object.freeze(['-Xms256m']),
       applicationArgs: Object.freeze(['configured']),
@@ -197,15 +216,17 @@ describe('java-run 配置组合', () => {
       '--jvm-arg=-Xmx1g',
       '--arg',
       '',
-      '--build-arg=',
+      '--build-arg=-Dname=a=b',
     ])
     const value = {
       jvmArgs: [...(action === 'init' ? [] : project.jvmArgs), '-Dname=a=b', '-Xmx1g'],
       applicationArgs: [...(action === 'init' ? [] : project.applicationArgs), 'hello world', ''],
-      buildArgs: [...(action === 'init' ? [] : project.buildArgs), '-Pdev', ''],
+      buildArgs: [...(action === 'init' ? [] : project.buildArgs), '-Pdev', '-Dname=a=b'],
     }
 
-    expect(await run(command, { argv })).toMatchObject({ kind: 'executed', value })
+    expect(await run(command, { argv })).toMatchObject(action === 'run'
+      ? { kind: 'exit', exitCode: 0, commandPath: ['java-run', 'run'] }
+      : { kind: 'executed', value })
     if (action === 'init') {
       expect(services.readProjectConfig).not.toHaveBeenCalled()
       expect(services.initialize).toHaveBeenCalledExactlyOnceWith(expect.objectContaining(value))
@@ -249,7 +270,9 @@ describe('java-run 配置组合', () => {
       buildArgs: [...(action === 'init' ? [] : project.buildArgs), '--info'],
     }
 
-    expect(await run(command, { argv })).toMatchObject({ kind: 'executed', value })
+    expect(await run(command, { argv })).toMatchObject(action === 'run'
+      ? { kind: 'exit', exitCode: 0, commandPath: ['java-run', 'run'] }
+      : { kind: 'executed', value })
     if (action === 'init') {
       expect(services.initialize).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ ...value, force: false }))
       expect(services.readProjectConfig).not.toHaveBeenCalled()
@@ -273,7 +296,7 @@ describe('java-run 配置组合', () => {
     const { command, services } = createApplication()
     services.readProjectConfig.mockRejectedValue(new Error('旧配置无效'))
 
-    expect(await run(command, { argv: [action, '--help', '--', '--force', ''] })).toMatchObject({ kind: 'help' })
+    expect(await run(command, { argv: [action, '--main=invalid-name', '--help', '--', '--force', ''] })).toMatchObject({ kind: 'help' })
     for (const service of Object.values(services))
       expect(service).not.toHaveBeenCalled()
   })
@@ -342,6 +365,123 @@ describe('java-run 配置组合', () => {
     expect(services.initialize).not.toHaveBeenCalled()
   })
 
+  it.each(['run', 'plan', 'init'])('主类领域错误返回预期失败，不执行业务：%s', async (action) => {
+    const { command, services } = createApplication({ mainClass: 'example.Configured' })
+
+    expect(await run(command, { argv: [action, '--main=invalid-name'] })).toEqual({
+      kind: 'failed',
+      exitCode: 2,
+      commandPath: ['java-run', action],
+      message: 'mainClass 必须是有效的 Java 类全名',
+    })
+    if (action === 'init')
+      expect(services.readProjectConfig).not.toHaveBeenCalled()
+    else
+      expect(services.readProjectConfig).toHaveBeenCalledExactlyOnceWith('/project')
+    expect(services.launch).not.toHaveBeenCalled()
+    expect(services.plan).not.toHaveBeenCalled()
+    expect(services.initialize).not.toHaveBeenCalled()
+  })
+
+  it.each(['run', 'plan', 'init'])('目录来自 CLI 或环境且为空白时，配置读取和业务均不执行：%s', async (action) => {
+    for (const { argv, environment } of [
+      { argv: [action, '--cwd= \t '], environment: { cwd: '/project' } },
+      { argv: [action], environment: { cwd: '' } },
+    ]) {
+      const { command, services } = createApplication({}, environment)
+
+      expect(await run(command, { argv })).toEqual({
+        kind: 'failed',
+        exitCode: 2,
+        commandPath: ['java-run', action],
+        message: 'cwd 必须是非空字符串',
+      })
+      for (const service of Object.values(services))
+        expect(service).not.toHaveBeenCalled()
+    }
+  })
+
+  it.each([
+    { project: { mainClass: 'invalid-name' }, field: 'mainClass', argv: [] },
+    { project: { module: 'app,lib' }, field: 'module', argv: [] },
+    { project: { jvmArgs: [' '] }, field: 'jvmArgs', argv: ['--jvm-arg=-Xmx1g'] },
+    { project: { buildArgs: [''] }, field: 'buildArgs', argv: ['--build-arg=--info'] },
+  ])('项目配置中的无效领域值也在组合后拒绝：$field', async ({ project, field, argv }) => {
+    const { command, services } = createApplication(project)
+
+    expect(await run(command, { argv })).toMatchObject({
+      kind: 'failed',
+      exitCode: 2,
+      commandPath: ['java-run', 'run'],
+      message: expect.stringContaining(field),
+    })
+    expect(services.readProjectConfig).toHaveBeenCalledExactlyOnceWith('/project')
+    expect(services.launch).not.toHaveBeenCalled()
+    expect(services.plan).not.toHaveBeenCalled()
+    expect(services.initialize).not.toHaveBeenCalled()
+  })
+
+  it('init 忽略旧配置中的无效字段和数组，只校验本次请求', async () => {
+    const { command, services } = createApplication({ mainClass: 'invalid-name', module: 'app,lib', jvmArgs: [''], buildArgs: [' '] })
+    const request = { mainClass: 'example.App', jvmArgs: ['-Xmx1g'], buildArgs: ['--info'], module: undefined }
+
+    expect(await run(command, { argv: ['init', '--main=example.App', '--jvm-arg=-Xmx1g', '--build-arg=--info'] })).toMatchObject({
+      kind: 'executed',
+      value: request,
+    })
+    expect(services.initialize).toHaveBeenCalledExactlyOnceWith(expect.objectContaining(request))
+    expect(services.readProjectConfig).not.toHaveBeenCalled()
+    expect(services.launch).not.toHaveBeenCalled()
+    expect(services.plan).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { option: '--java= ', field: 'javaCommand' },
+    { option: '--build-command= ', field: 'buildCommand' },
+    { option: '--jvm-arg= ', field: 'jvmArgs' },
+    { option: '--build-arg= ', field: 'buildArgs' },
+  ])('空白工具或启动参数属于预期领域失败：$option', async ({ option, field }) => {
+    const { command, services } = createApplication()
+
+    expect(await run(command, { argv: [option] })).toEqual({
+      kind: 'failed',
+      exitCode: 2,
+      commandPath: ['java-run', 'run'],
+      message: `${field} 必须是非空字符串`,
+    })
+    expect(services.launch).not.toHaveBeenCalled()
+    expect(services.plan).not.toHaveBeenCalled()
+    expect(services.initialize).not.toHaveBeenCalled()
+  })
+
+  it.each(['run', 'plan'])('有效 CLI 覆盖无效配置标量，再校验并规范化最终模块：%s', async (action) => {
+    const project = Object.freeze({ mainClass: 'invalid-name', module: 'app,lib' })
+    const { command, services } = createApplication(project)
+    const request = { mainClass: '示例.Outer$Inner', module: ':apps:service' }
+    const result = await run(command, {
+      argv: [action, '--main=示例.Outer$Inner', '--module= :apps:service '],
+    })
+
+    expect(result).toMatchObject(action === 'run'
+      ? { kind: 'exit', exitCode: 0, commandPath: ['java-run', 'run'] }
+      : { kind: 'executed', value: request })
+    expect(action === 'run' ? services.launch : services.plan).toHaveBeenCalledExactlyOnceWith(expect.objectContaining(request))
+    expect(project).toEqual({ mainClass: 'invalid-name', module: 'app,lib' })
+  })
+
+  it.each([
+    { argv: ['run'], launch: () => 7, description: '同步启动状态' },
+    { argv: [], launch: async () => 7, description: '异步启动状态与默认入口' },
+  ])('显式传递非零业务退出码：$description', async ({ argv, launch }) => {
+    const { command, services } = createApplication()
+    services.launch.mockImplementationOnce(launch)
+
+    expect(await run(command, { argv })).toEqual({ kind: 'exit', exitCode: 7, commandPath: ['java-run', 'run'] })
+    expect(services.launch).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ cwd: '/project', includeTests: false }))
+    expect(services.plan).not.toHaveBeenCalled()
+    expect(services.initialize).not.toHaveBeenCalled()
+  })
+
   it.each([
     { argv: [], overrides: {} },
     {
@@ -391,7 +531,7 @@ describe('java-run 配置组合', () => {
 
     for (const input of [argv, ['run', ...argv]]) {
       const { command, services } = createApplication(project)
-      expect(await run(command, { argv: Object.freeze(input) })).toEqual({ kind: 'executed', value: request })
+      expect(await run(command, { argv: Object.freeze(input) })).toEqual({ kind: 'exit', exitCode: 0, commandPath: ['java-run', 'run'] })
       expect(services.readProjectConfig).toHaveBeenCalledExactlyOnceWith('/project')
       expect(services.launch).toHaveBeenCalledExactlyOnceWith(request)
       expect(services.plan).not.toHaveBeenCalled()
@@ -441,8 +581,9 @@ describe('java-run 配置组合', () => {
     const { command, services } = createApplication()
 
     expect(await run(command, { argv: ['--cwd', 'plan'] })).toMatchObject({
-      kind: 'executed',
-      value: { cwd: 'plan' },
+      kind: 'exit',
+      exitCode: 0,
+      commandPath: ['java-run', 'run'],
     })
     expect(services.readProjectConfig).toHaveBeenCalledExactlyOnceWith('plan')
     expect(services.launch).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ cwd: 'plan' }))

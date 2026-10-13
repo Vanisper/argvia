@@ -1,15 +1,16 @@
 import type { Command } from '@argvia/core'
 import type { InitRequest, JavaRunEnvironment, LaunchConfig, ProjectConfig } from './config.js'
 import type { LaunchInput } from './options.js'
-import { defineCommand, option } from '@argvia/core'
-import { resolveLaunchConfig } from './config.js'
+import { defineCommand, exit, option } from '@argvia/core'
+import { resolveLaunchConfig, resolveProjectDirectory } from './config.js'
 import { launchOptions } from './options.js'
 
-/** 由应用提供配置读取与业务执行，返回值交由 Argvia 的执行结果保留 */
+/** 由应用提供配置读取、启动状态与业务数据 */
 export interface JavaRunServices {
   /** 缺少项目配置时返回空对象，读取失败时拒绝 */
   readProjectConfig: (cwd: string) => Promise<ProjectConfig>
-  launch: (request: LaunchConfig) => unknown
+  /** 返回启动进程的退出码，由命令显式适配为退出结果 */
+  launch: (request: LaunchConfig) => number | Promise<number>
   plan: (request: LaunchConfig) => unknown
   initialize: (request: InitRequest) => unknown
 }
@@ -20,7 +21,8 @@ export function createJavaRunCommand(
   environment: JavaRunEnvironment,
 ): Command {
   async function resolveConfiguredInput(cli: LaunchInput, passthrough: readonly string[]): Promise<LaunchConfig> {
-    const project = await services.readProjectConfig(cli.cwd ?? environment.cwd)
+    const cwd = resolveProjectDirectory(cli.cwd, environment)
+    const project = await services.readProjectConfig(cwd)
     return resolveLaunchConfig(cli, project, environment, passthrough)
   }
 
@@ -34,7 +36,8 @@ export function createJavaRunCommand(
         options: launchOptions,
         passthrough: true,
         async run({ options, passthrough }) {
-          return services.launch(await resolveConfiguredInput(options, passthrough))
+          const request = await resolveConfiguredInput(options, passthrough)
+          return exit(await services.launch(request))
         },
       }),
       plan: defineCommand({

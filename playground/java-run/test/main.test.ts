@@ -107,4 +107,45 @@ describe('java-run 演示入口', () => {
     expect(result.stderr).toContain('--force')
     expect(result.stderr).toContain('java-run run --help')
   })
+
+  it('显式 false 覆盖内存配置中的 true', () => {
+    const result = invoke(['--include-tests=false'])
+
+    expect(result.status).toBe(0)
+    expect(result.stderr).toBe('')
+    expect(JSON.parse(result.stdout)).toMatchObject({ demo: true, action: 'run', request: { includeTests: false } })
+  })
+
+  it('领域失败输出命令路径和消息，不追加解析帮助', () => {
+    const result = invoke(['--main=invalid-name'])
+
+    expect(result.status).toBe(2)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe('java-run run: mainClass 必须是有效的 Java 类全名\n')
+  })
+
+  it('注入非零启动状态，通过真实 Node 进程保留退出码', () => {
+    const appUrl = new URL('../src/app.ts', import.meta.url).href
+    const source = `
+      import { runMain } from '@argvia/node'
+      import { createJavaRunCommand } from ${JSON.stringify(appUrl)}
+      await runMain(createJavaRunCommand({
+        readProjectConfig: async () => ({}),
+        launch: async () => 7,
+        plan: () => {},
+        initialize: () => {},
+      }, { cwd: process.cwd() }))
+    `
+    const result = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', source], {
+      cwd,
+      encoding: 'utf8',
+      timeout: 10_000,
+    })
+
+    expect(result.error).toBeUndefined()
+    expect(result.signal).toBeNull()
+    expect(result.status).toBe(7)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe('')
+  })
 })

@@ -21,7 +21,10 @@ function printRequest(action: 'run' | 'plan' | 'init', request: LaunchConfig | I
 
 const services: JavaRunServices = {
   readProjectConfig: async () => project,
-  launch: request => printRequest('run', request),
+  launch(request) {
+    printRequest('run', request)
+    return 0
+  },
   plan: request => printRequest('plan', request),
   initialize: request => printRequest('init', request),
 }

@@ -99,7 +99,7 @@ export function verifyJavaRunTypes(): void {
       expectTypeOf(request).toEqualTypeOf<LaunchConfig>()
       // @ts-expect-error 启动请求不包含初始化开关
       expectTypeOf(request.force)
-      return request
+      return 0
     },
     plan(request) {
       expectTypeOf(request).toEqualTypeOf<LaunchConfig>()
@@ -114,6 +114,13 @@ export function verifyJavaRunTypes(): void {
       return request
     },
   }
+
+  expectTypeOf(services.launch).returns.toEqualTypeOf<number | Promise<number>>()
+  const asyncLaunch: JavaRunServices['launch'] = async () => 7
+  expectTypeOf(asyncLaunch).toEqualTypeOf<JavaRunServices['launch']>()
+  // @ts-expect-error 启动服务必须返回退出码
+  const invalidLaunch: JavaRunServices['launch'] = (request: LaunchConfig) => request
+  void invalidLaunch
 
   const app = createJavaRunCommand(services, { cwd: '/project' })
   const commands = { run: runCommand, plan: planCommand, init: initCommand }
