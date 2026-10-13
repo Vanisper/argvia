@@ -1,0 +1,22 @@
+{
+  "name": "@argvia/core",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "面向 TypeScript 的 CLI 命令定义基础库",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:dev",
+    "typescript": "catalog:dev",
+    "vitest": "catalog:dev"
+  }
+}

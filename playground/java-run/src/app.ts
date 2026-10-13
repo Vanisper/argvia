@@ -1,5 +1,5 @@
-import type { Command, CommandContext } from 'argvia'
-import { defineCommand, option } from 'argvia'
+import type { Command, CommandContext } from '@argvia/core'
+import { defineCommand, option } from '@argvia/core'
 
 /** run、plan 和 init 共同接受的标量选项 */
 export const launchOptions = {

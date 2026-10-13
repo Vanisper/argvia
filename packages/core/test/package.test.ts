@@ -12,15 +12,15 @@ const fixtureDirectory = fileURLToPath(new URL('./fixtures/', import.meta.url))
 const compiler = createRequire(import.meta.url).resolve('typescript/lib/tsc.js')
 let consumerDirectory = ''
 
-describe('构建产物的隔离消费', () => {
+describe('核心包构建产物的独立消费', () => {
   beforeAll(() => {
-    consumerDirectory = realpathSync(mkdtempSync(join(tmpdir(), 'argvia-consumer-')))
-    const installedPackage = join(consumerDirectory, 'node_modules', 'argvia')
+    consumerDirectory = realpathSync(mkdtempSync(join(tmpdir(), 'argvia-core-consumer-')))
+    const installedPackage = join(consumerDirectory, 'node_modules', '@argvia', 'core')
     mkdirSync(installedPackage, { recursive: true })
     cpSync(join(packageDirectory, 'package.json'), join(installedPackage, 'package.json'))
     cpSync(join(packageDirectory, 'dist'), join(installedPackage, 'dist'), { recursive: true })
     writeFileSync(join(consumerDirectory, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
-    for (const fixture of ['core.mjs', 'node.mjs', 'deny-builtins.mjs', 'consumer.ts']) {
+    for (const fixture of ['core.mjs', 'deny-builtins.mjs', 'consumer.ts']) {
       writeFileSync(
         join(consumerDirectory, fixture),
         readFileSync(join(fixtureDirectory, `${fixture}.txt`), 'utf8'),
@@ -44,19 +44,6 @@ describe('构建产物的隔离消费', () => {
     expect(child.stderr).toBe('')
     expect(child.status).toBe(0)
     expect(child.stdout).toBe('核心入口消费通过\n')
-  })
-
-  it('进程入口执行核心入口创建的命令，共享同一份命令定义', () => {
-    const child = spawnSync(process.execPath, ['node.mjs', 'ready'], {
-      cwd: consumerDirectory,
-      encoding: 'utf8',
-      timeout: 20_000,
-    })
-
-    expect(child.error).toBeUndefined()
-    expect(child.stderr).toBe('')
-    expect(child.status).toBe(0)
-    expect(child.stdout).toBe('进程入口消费通过\n')
   })
 
   it.each([
@@ -88,10 +75,9 @@ describe('构建产物的隔离消费', () => {
     expect(child.stderr).toBe('')
     expect(child.status, child.stdout).toBe(0)
     const output = child.stdout.replaceAll('\\', '/')
-    const declarations = output.split(/\r?\n/u).filter(file => file.includes('/node_modules/argvia/'))
-    const declarationDirectory = join(consumerDirectory, 'node_modules', 'argvia', 'dist').replaceAll('\\', '/')
+    const declarations = output.split(/\r?\n/u).filter(file => file.includes('/node_modules/@argvia/'))
+    const declarationDirectory = join(consumerDirectory, 'node_modules', '@argvia', 'core', 'dist').replaceAll('\\', '/')
     expect(declarations).toContain(`${declarationDirectory}/index.d.ts`)
-    expect(declarations).toContain(`${declarationDirectory}/node.d.ts`)
     expect(declarations).toContain(`${declarationDirectory}/types.d.ts`)
     expect(declarations.every(file => file.startsWith(`${declarationDirectory}/`) && file.endsWith('.d.ts'))).toBe(true)
     expect(output).not.toContain('/@types/node/')

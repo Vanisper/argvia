@@ -1,6 +1,6 @@
-import type { Command } from 'argvia'
+import type { Command } from '@argvia/core'
 import type { InitRequest, JavaRunServices, LaunchConfig, LaunchInput } from './app.js'
-import { defineCommand } from 'argvia'
+import { defineCommand } from '@argvia/core'
 import { expectTypeOf } from 'vitest'
 import { createJavaRunCommand, initOptions, launchOptions, resolveLaunchConfig } from './app.js'
 

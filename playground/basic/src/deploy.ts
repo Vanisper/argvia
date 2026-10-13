@@ -1,6 +1,6 @@
 // @env node
 import process from 'node:process'
-import { argument, defineCommand } from 'argvia'
+import { argument, defineCommand } from '@argvia/core'
 import { sharedOptions } from './shared-options.js'
 
 export const deploy = defineCommand({

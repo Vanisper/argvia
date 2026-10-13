@@ -1,5 +1,5 @@
 import type { InitRequest, LaunchConfig, ProjectConfig } from '../src/app.js'
-import { run } from 'argvia'
+import { run } from '@argvia/core'
 import { describe, expect, it, vi } from 'vitest'
 import { createJavaRunCommand } from '../src/app.js'
 

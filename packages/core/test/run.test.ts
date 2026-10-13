@@ -1,4 +1,4 @@
-import { argument, defineCommand, DefinitionError, option, run } from 'argvia'
+import { argument, defineCommand, DefinitionError, option, run } from '@argvia/core'
 import { describe, expect, it, vi } from 'vitest'
 
 function createTool() {

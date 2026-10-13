@@ -8,7 +8,10 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": { "argvia": "workspace:*" },
+  "dependencies": {
+    "@argvia/core": "workspace:*",
+    "@argvia/node": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "catalog:dev",
     "tsx": "catalog:dev",

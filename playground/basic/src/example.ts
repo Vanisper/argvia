@@ -1,5 +1,5 @@
-import { defineCommand } from 'argvia'
-import { runMain } from 'argvia/node'
+import { defineCommand } from '@argvia/core'
+import { runMain } from '@argvia/node'
 
 // @env node
 import { deploy } from './deploy.js'

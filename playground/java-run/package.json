@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
-  "dependencies": { "argvia": "workspace:*" },
+  "dependencies": { "@argvia/core": "workspace:*" },
   "devDependencies": {
     "@types/node": "catalog:dev",
     "typescript": "catalog:dev",

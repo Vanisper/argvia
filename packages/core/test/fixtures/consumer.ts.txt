@@ -5,11 +5,10 @@ import type {
   RequiredConfig,
   RunConfig,
   RunResult,
-} from 'argvia'
-import { defineCommand, option, run } from 'argvia'
-import { runMain } from 'argvia/node'
+} from '@argvia/core'
+import { defineCommand, option, run } from '@argvia/core'
 // @ts-expect-error 核心入口不导出进程适配器
-import { runMain as coreRunMain } from 'argvia'
+import { runMain } from '@argvia/core'
 
 function expectType<Value>(value: Value): void {
   void value
@@ -62,7 +61,6 @@ const command: Command = defineCommand({
 
 const input: RunConfig = { argv: ['--target=application'] }
 expectType<Promise<RunResult>>(run(command, input))
-expectType<Promise<void>>(runMain(command))
 
 // @ts-expect-error 布尔默认值不能使用字符串
 option.boolean({ default: 'false' })

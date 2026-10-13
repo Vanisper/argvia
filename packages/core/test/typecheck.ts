@@ -1,5 +1,5 @@
-import type { Argument, Option } from 'argvia'
-import { argument, defineCommand, option } from 'argvia'
+import type { Argument, Option } from '@argvia/core'
+import { argument, defineCommand, option } from '@argvia/core'
 import { expectTypeOf } from 'vitest'
 
 /** 检查命令定义的类型契约，负例只参与编译检查 */

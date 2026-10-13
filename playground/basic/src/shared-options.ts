@@ -1,4 +1,4 @@
-import { option } from 'argvia'
+import { option } from '@argvia/core'
 
 export const sharedOptions = {
   port: option.number({ default: 3000, description: '监听端口' }),

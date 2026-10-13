@@ -7,7 +7,7 @@ async function main() {
   register('./deny-builtins.mjs', import.meta.url)
   await assert.rejects(import('node:process'), /核心入口不能加载 Node 内建模块/u)
 
-  const core = await import('argvia')
+  const core = await import('@argvia/core')
   assert.equal('runMain' in core, false)
   const command = core.defineCommand({
     options: {
@@ -24,7 +24,7 @@ async function main() {
     kind: 'executed',
     value: { verbose: true, force: false },
   })
-  await assert.rejects(import('argvia/dist/index.js'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
+  await assert.rejects(import('@argvia/core/dist/index.js'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
   process.stdout.write('核心入口消费通过\n')
 }
 
