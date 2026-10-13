@@ -94,3 +94,11 @@ pnpm exec turbo run lint typecheck test --filter=@argvia/playground-java-run
 ```
 
 实际 Java 构建、子进程调度与配置持久化可通过 `JavaRunServices` 接入。
+
+配置读取或业务代码出现意外异常时，应用入口可以显式开启 Node 调试诊断：
+
+```ts
+await runMain(createJavaRunCommand(services, { cwd: process.cwd() }), { debug: true })
+```
+
+意外 `Error` 输出堆栈；领域校验的 `CommandError` 仍输出修正提示，退出码保持 `2`。入口默认关闭调试，具体输出规则见[帮助与诊断契约](help-contract.md)。

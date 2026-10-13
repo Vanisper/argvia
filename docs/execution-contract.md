@@ -47,7 +47,7 @@ const result = {
 
 ## Node 进程映射
 
-`@argvia/node` 的 `runMain(command)` 使用下表映射执行结果：
+`@argvia/node` 的 `runMain(command, options?)` 使用下表映射执行结果：
 
 | 结果 | 输出 | 退出码 |
 | --- | --- | --- |
@@ -59,6 +59,8 @@ const result = {
 | 意外异常 | stderr 输出异常消息或拒绝值的字符串形式 | `1` |
 
 进程适配器设置 `process.exitCode`，不调用 `process.exit()`。应用需要保留业务退出状态时使用显式退出协议；处理函数自行修改 `process.exitCode` 不属于结果协议。业务已经输出的日志不由适配器重放。
+
+应用可通过 `{ debug: true }` 让意外 `Error` 输出非空堆栈，缺失或为空时回退消息。其他拒绝值、预期失败及各分支退出码保持表中映射。调试默认关闭，由应用显式传入，详细规则见[帮助与诊断契约](help-contract.md)。
 
 ## java-run 领域与验证
 

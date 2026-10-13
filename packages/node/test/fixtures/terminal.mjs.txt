@@ -1,8 +1,7 @@
 // @env node
 import { argument, CommandError, defineCommand, exit } from '@argvia/core'
-import { runMain } from '@argvia/node'
 
-const app = defineCommand({
+export const app = defineCommand({
   name: 'fixture',
   args: [argument.string('action', { required: true })],
   run({ args }) {
@@ -10,6 +9,24 @@ const app = defineCommand({
       throw new Error('业务失败')
     if (args.action === 'reject')
       return Promise.reject(new Error('异步业务失败'))
+    if (args.action === 'fixed-stack' || args.action === 'fixed-stack-reject') {
+      const error = new Error('调试失败')
+      error.stack = 'Error: 调试失败\n    at fixture:1:1'
+      if (args.action === 'fixed-stack-reject')
+        return Promise.reject(error)
+      throw error
+    }
+    if (args.action === 'no-stack' || args.action === 'empty-stack') {
+      const error = new Error('没有可用堆栈')
+      error.stack = args.action === 'no-stack' ? undefined : ''
+      throw error
+    }
+    if (args.action === 'reject-string')
+      return Promise.reject('异步拒绝值')
+    if (args.action === 'throw-null')
+      throw null
+    if (args.action === 'throw-object')
+      throw { message: '伪造消息', stack: '伪造堆栈' }
     if (args.action === 'expected')
       throw new CommandError('配置无效')
     if (args.action === 'expected-two')
@@ -47,5 +64,3 @@ const app = defineCommand({
     return 42
   },
 })
-
-await runMain(app)

@@ -104,7 +104,7 @@ const app = defineCommand({
 
 处理函数抛出或异步拒绝 `CommandError` 时，`run()` 返回独立的 `failed` 结果，不转换成参数解析错误。返回该错误对象仍属于普通业务数据；同名或同形对象不会被识别。其他异常和拒绝值原样传播。业务返回值暂不进行泛型推导。完整规则见[命令执行契约](execution-contract.md)。
 
-`runMain(command)` 从 `@argvia/node` 导入，接收 `@argvia/core` 创建的命令，读取 `process.argv.slice(2)` 并设置 `process.exitCode`：
+`runMain(command, options?)` 从 `@argvia/node` 导入，接收 `@argvia/core` 创建的命令，读取 `process.argv.slice(2)` 并设置 `process.exitCode`：
 
 | 结果 | 输出 | 退出码 |
 | --- | --- | --- |
@@ -116,3 +116,5 @@ const app = defineCommand({
 | 意外异常 | stderr | `1` |
 
 普通数值返回值不会自动当作退出码。适配器设置 `process.exitCode`，不调用 `process.exit()`；处理函数自行修改进程状态不替代显式退出协议。取消状态可通过退出码传递，信号监听与子进程管理由应用负责。Bun 入口兼容性仍待验证。
+
+`RunMainOptions` 提供可选的只读 `debug: boolean`。省略或 `false` 时，意外 `Error` 只输出消息；只有 `true` 输出非空堆栈，缺失或为空时回退消息。其他拒绝值仍通过 `String()` 展示，`CommandError` 的消息格式、帮助及各分支退出码均沿用原映射。该选项由应用传入，完整规则见[帮助与诊断契约](help-contract.md)。

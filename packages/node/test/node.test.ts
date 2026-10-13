@@ -13,6 +13,20 @@ const coreDirectory = dirname(dirname(fileURLToPath(import.meta.resolve('@argvia
 const compiler = createRequire(import.meta.url).resolve('typescript/lib/tsc.js')
 let consumerDirectory = ''
 
+function invokeWithOptions(argv: string[], options?: unknown) {
+  const source = `
+    import { runMain } from '@argvia/node'
+    import { app } from './terminal.mjs'
+    await runMain(app, ${JSON.stringify(options)})
+    process.stdout.write('入口已返回\\n')
+  `
+  return spawnSync(process.execPath, ['--input-type=module', '--eval', source, 'terminal-entry.mjs', ...argv], {
+    cwd: consumerDirectory,
+    encoding: 'utf8',
+    timeout: 20_000,
+  })
+}
+
 describe('进程适配包与核心包产物的隔离消费', () => {
   beforeAll(() => {
     consumerDirectory = realpathSync(mkdtempSync(join(tmpdir(), 'argvia-node-consumer-')))
@@ -23,7 +37,7 @@ describe('进程适配包与核心包产物的隔离消费', () => {
       cpSync(join(source, 'dist'), join(installedPackage, 'dist'), { recursive: true })
     }
     writeFileSync(join(consumerDirectory, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
-    for (const fixture of ['node.mjs', 'terminal.mjs', 'composition.mjs', 'consumer.ts']) {
+    for (const fixture of ['node.mjs', 'terminal.mjs', 'terminal-entry.mjs', 'composition.mjs', 'consumer.ts']) {
       writeFileSync(
         join(consumerDirectory, fixture),
         readFileSync(join(fixtureDirectory, `${fixture}.txt`), 'utf8'),
@@ -100,7 +114,7 @@ describe('进程适配包与核心包产物的隔离消费', () => {
     { argv: ['reject'], status: 1, stdout: '', stderr: '异步业务失败' },
     { argv: ['--help'], status: 0, stdout: 'fixture', stderr: '' },
   ])('普通 Node 输入 $argv 返回退出码 $status', ({ argv, status, stdout, stderr }) => {
-    const child = spawnSync(process.execPath, ['terminal.mjs', ...argv], {
+    const child = spawnSync(process.execPath, ['terminal-entry.mjs', ...argv], {
       cwd: consumerDirectory,
       encoding: 'utf8',
       timeout: 20_000,
@@ -123,7 +137,7 @@ describe('进程适配包与核心包产物的隔离消费', () => {
     { action: 'expected-two', status: 2, stderr: 'fixture: 主类无效\n' },
     { action: 'expected-async', status: 17, stderr: 'fixture: 工具不可用\n' },
   ])('预期业务失败只输出路径与消息：$action', ({ action, status, stderr }) => {
-    const child = spawnSync(process.execPath, ['terminal.mjs', action], {
+    const child = spawnSync(process.execPath, ['terminal-entry.mjs', action], {
       cwd: consumerDirectory,
       encoding: 'utf8',
       timeout: 20_000,
@@ -133,6 +147,70 @@ describe('进程适配包与核心包产物的隔离消费', () => {
     expect(child.status).toBe(status)
     expect(child.stdout).toBe('')
     expect(child.stderr).toBe(stderr)
+  })
+
+  it.each([
+    { action: 'fixed-stack', options: undefined, stderr: '调试失败\n' },
+    { action: 'fixed-stack', options: { debug: false }, stderr: '调试失败\n' },
+    { action: 'fixed-stack', options: { debug: true }, stderr: 'Error: 调试失败\n    at fixture:1:1\n' },
+    { action: 'fixed-stack-reject', options: { debug: true }, stderr: 'Error: 调试失败\n    at fixture:1:1\n' },
+    { action: 'no-stack', options: { debug: true }, stderr: '没有可用堆栈\n' },
+    { action: 'empty-stack', options: { debug: true }, stderr: '没有可用堆栈\n' },
+    { action: 'fixed-stack', options: { debug: 'true' }, stderr: '调试失败\n' },
+    { action: 'fixed-stack', options: { debug: 1 }, stderr: '调试失败\n' },
+    { action: 'reject-string', options: { debug: true }, stderr: '异步拒绝值\n' },
+    { action: 'throw-null', options: { debug: true }, stderr: 'null\n' },
+    { action: 'throw-object', options: { debug: true }, stderr: '[object Object]\n' },
+  ])('意外异常按显式调试选项输出并返回入口：$action $options', ({ action, options, stderr }) => {
+    const child = invokeWithOptions([action], options)
+
+    expect(child.error).toBeUndefined()
+    expect(child.signal).toBeNull()
+    expect(child.status).toBe(1)
+    expect(child.stdout).toBe('入口已返回\n')
+    expect(child.stderr).toBe(stderr)
+  })
+
+  it.each([
+    { argv: ['success'] },
+    { argv: ['returned-error'] },
+    { argv: ['expected'] },
+    { argv: ['expected-two'] },
+    { argv: ['expected-async'] },
+    { argv: ['exit'] },
+    { argv: ['--help'] },
+    { argv: [] },
+  ])('调试开关不改变普通结果、预期失败及输入诊断：$argv', ({ argv }) => {
+    const normal = invokeWithOptions(argv, { debug: false })
+    const debug = invokeWithOptions(argv, { debug: true })
+
+    for (const child of [normal, debug]) {
+      expect(child.error).toBeUndefined()
+      expect(child.signal).toBeNull()
+      expect(child.stdout).toContain('入口已返回\n')
+    }
+    expect(debug.status).toBe(normal.status)
+    expect(debug.stdout).toBe(normal.stdout)
+    expect(debug.stderr).toBe(normal.stderr)
+  })
+
+  it('执行器拒绝无效命令时显示定义错误堆栈并返回入口', () => {
+    const source = `
+      import { runMain } from '@argvia/node'
+      await runMain({}, { debug: true })
+      process.stdout.write('入口已返回\\n')
+    `
+    const child = spawnSync(process.execPath, ['--input-type=module', '--eval', source], {
+      cwd: consumerDirectory,
+      encoding: 'utf8',
+      timeout: 20_000,
+    })
+
+    expect(child.error).toBeUndefined()
+    expect(child.status).toBe(1)
+    expect(child.stdout).toBe('入口已返回\n')
+    expect(child.stderr).toMatch(/^DefinitionError:/u)
+    expect(child.stderr).toMatch(/\n\s+at /u)
   })
 
   it.each([

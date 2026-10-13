@@ -1,4 +1,5 @@
 import type { Command, CommandErrorOptions, ExitResult, RunResult } from '@argvia/core'
+import type { RunMainOptions } from '@argvia/node'
 import { argument, CommandError, defineCommand, exit, option, run } from '@argvia/core'
 import { runMain } from '@argvia/node'
 
@@ -22,6 +23,17 @@ const command: Command = defineCommand({
 
 const app = defineCommand({ commands: { run: command }, defaultCommand: 'run' })
 expectType<Promise<void>>(runMain(app))
+expectType<Promise<void>>(runMain(app, {}))
+expectType<Promise<void>>(runMain(app, { debug: true }))
+expectType<Promise<void>>(runMain(app, { debug: false }))
+const mainOptions: RunMainOptions = { debug: Math.random() > 0.5 }
+expectType<Promise<void>>(runMain(app, mainOptions))
+// @ts-expect-error 调试选项只读
+mainOptions.debug = false
+// @ts-expect-error 调试开关必须是布尔值
+runMain(app, { debug: 'true' })
+// @ts-expect-error 调试开关不能显式为 undefined
+runMain(app, { debug: undefined })
 expectType<Promise<RunResult>>(run(app, { argv: ['run', 'ready'] }))
 
 // @ts-expect-error 终端适配与核心包共用命令键约束

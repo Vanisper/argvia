@@ -3,12 +3,18 @@ import type { Command } from '@argvia/core'
 import process from 'node:process'
 import { run } from '@argvia/core'
 
+/** Node 进程入口的诊断选项 */
+export interface RunMainOptions {
+  /** 意外异常为 Error 时显示非空堆栈，缺失时回退消息；默认关闭 */
+  readonly debug?: boolean
+}
+
 /**
  * 使用进程参数执行命令，并输出帮助或错误
  *
  * @description 设置 process.exitCode：成功或帮助为 0，输入错误为 2，显式退出或预期失败使用指定码，意外异常为 1；普通返回值不自动输出
  */
-export async function runMain(command: Command): Promise<void> {
+export async function runMain(command: Command, options: RunMainOptions = {}): Promise<void> {
   try {
     const result = await run(command, { argv: process.argv.slice(2) })
     switch (result.kind) {
@@ -33,7 +39,10 @@ export async function runMain(command: Command): Promise<void> {
     }
   }
   catch (error) {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)
+    const message = error instanceof Error
+      ? options.debug === true ? error.stack || error.message : error.message
+      : String(error)
+    process.stderr.write(`${message}\n`)
     process.exitCode = 1
   }
 }

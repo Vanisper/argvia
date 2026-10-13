@@ -1,0 +1,5 @@
+// @env node
+import { runMain } from '@argvia/node'
+import { app } from './terminal.mjs'
+
+await runMain(app)
