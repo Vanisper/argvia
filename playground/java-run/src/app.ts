@@ -32,7 +32,7 @@ export function createJavaRunCommand(
     defaultCommand: 'run',
     commands: {
       run: defineCommand({
-        description: '运行应用',
+        description: '运行应用；配置标量省略时继承项目配置，数组按配置 → CLI 追加，应用参数最后追加 -- 透传值',
         options: launchOptions,
         passthrough: true,
         async run({ options, passthrough }) {
@@ -41,7 +41,7 @@ export function createJavaRunCommand(
         },
       }),
       plan: defineCommand({
-        description: '预览启动计划',
+        description: '预览启动计划；配置标量省略时继承项目配置，数组按配置 → CLI 追加，应用参数最后追加 -- 透传值',
         options: launchOptions,
         passthrough: true,
         async run({ options, passthrough }) {
@@ -49,10 +49,10 @@ export function createJavaRunCommand(
         },
       }),
       init: defineCommand({
-        description: '初始化项目配置',
+        description: '初始化项目配置；仅使用本次输入与应用默认值，不读取旧配置，应用参数最后追加 -- 透传值',
         options: {
           ...launchOptions,
-          force: option.boolean({ default: false, description: '允许覆盖已有配置' }),
+          force: option.boolean({ default: false, description: '允许覆盖已有配置；关闭请用 --force=false' }),
         },
         passthrough: true,
         run({ options, passthrough }) {

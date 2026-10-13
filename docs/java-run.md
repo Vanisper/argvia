@@ -66,14 +66,14 @@ pnpm exec turbo run dev --filter=@argvia/playground-java-run -- init --force --a
 
 目录是读取配置的前置条件，`resolveProjectDirectory` 先拒绝空白目录；其余规则在配置合并后执行，因此有效 CLI 标量可以覆盖旧配置中的无效标量。主类需要符合点分标识符规则，支持 Unicode 和内部类名；模块选择器移除首尾空白，只接受单个模块。Java/构建工具路径、JVM 参数和构建参数拒绝空白项，应用参数及透传尾部保持原样。
 
-领域校验通过 `CommandError` 表达预期失败，退出码为 `2`，不会调用启动、计划或初始化服务。Node 入口输出命令路径和消息，不自动附加参数解析帮助；未知选项等解析错误仍带帮助提示。领域校验与执行结果的职责见[命令执行契约](execution-contract.md)。
+领域校验通过 `CommandError` 表达预期失败，退出码为 `2`，不会调用启动、计划或初始化服务。消息保留配置字段名并指出修正入口；JVM/build 数组错误标注合并后的零基下标，参数内容不回显。Node 入口输出命令路径和消息，不自动附加参数解析帮助；未知选项等解析错误仍带帮助提示。领域校验与执行结果的职责见[命令执行契约](execution-contract.md)。
 
 ```sh
 pnpm exec turbo run dev --filter=@argvia/playground-java-run -- --include-tests=false
 pnpm exec turbo run dev --filter=@argvia/playground-java-run -- --main=invalid-name
 ```
 
-第一条请求中的 `includeTests` 为 `false`；第二条由入口输出 `java-run run: mainClass 必须是有效的 Java 类全名`，入口退出码为 `2`。演示服务只打印请求，启动返回 `0`；非零启动状态由测试注入，并通过真实 Node 子进程验证为 `7`。
+第一条请求中的 `includeTests` 为 `false`；第二条由入口输出 `java-run run: mainClass 必须是有效的 Java 类全名；请通过 --main 或项目配置 mainClass 修正`，入口退出码为 `2`。演示服务只打印请求，启动返回 `0`；非零启动状态由测试注入，并通过真实 Node 子进程验证为 `7`。
 
 ## 配置组合与验证
 

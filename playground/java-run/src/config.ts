@@ -40,32 +40,32 @@ export interface JavaRunEnvironment {
   readonly cwd: string
 }
 
-function nonBlank(value: string, field: string): string {
+function nonBlank(value: string, field: string, correction: string): string {
   if (!value.trim())
-    throw new CommandError(`${field} 必须是非空字符串`, { exitCode: 2 })
+    throw new CommandError(`${field} 必须是非空字符串；${correction}`, { exitCode: 2 })
   return value
 }
 
 /** 确定读取项目配置的目录，空白目录在读取前抛出 CommandError */
 export function resolveProjectDirectory(cwd: string | undefined, environment: JavaRunEnvironment): string {
-  return nonBlank(cwd ?? environment.cwd, 'cwd')
+  return nonBlank(cwd ?? environment.cwd, 'cwd', '请通过 --cwd 指定项目目录')
 }
 
 function moduleSelector(value: string | undefined): string | undefined {
   if (value === undefined)
     return undefined
-  const selector = nonBlank(value, 'module').trim()
+  const selector = nonBlank(value, 'module', '请通过 --module 或项目配置 module 指定单个模块').trim()
   if (selector.includes(',') || /^[!?-]/u.test(selector))
-    throw new CommandError('module 必须指定单个模块，不能多选、排除或使用可选选择器', { exitCode: 2 })
+    throw new CommandError('module 必须指定单个模块，不能多选、排除或使用可选选择器；请通过 --module 或项目配置 module 修正', { exitCode: 2 })
   return selector
 }
 
 function mainClass(value: string | undefined): string | undefined {
   if (value === undefined)
     return undefined
-  nonBlank(value, 'mainClass')
+  nonBlank(value, 'mainClass', '请通过 --main 或项目配置 mainClass 指定合法的 Java 类全名')
   if (value.trim() !== value || !JAVA_CLASS_NAME.test(value))
-    throw new CommandError('mainClass 必须是有效的 Java 类全名', { exitCode: 2 })
+    throw new CommandError('mainClass 必须是有效的 Java 类全名；请通过 --main 或项目配置 mainClass 修正', { exitCode: 2 })
   return value
 }
 
@@ -86,11 +86,19 @@ export function resolveLaunchConfig(
     build: cli.build ?? project.build ?? 'auto',
     module: moduleSelector(cli.module ?? project.module),
     mainClass: mainClass(cli.mainClass ?? project.mainClass),
-    jvmArgs: [...(project.jvmArgs ?? []), ...cli.jvmArgs].map(value => nonBlank(value, 'jvmArgs')),
+    jvmArgs: [...(project.jvmArgs ?? []), ...cli.jvmArgs].map((value, index) => nonBlank(
+      value,
+      `合并后的 jvmArgs[${index}]`,
+      '请检查 --jvm-arg 或项目配置 jvmArgs',
+    )),
     applicationArgs: [...(project.applicationArgs ?? []), ...cli.applicationArgs, ...passthrough],
-    buildArgs: [...(project.buildArgs ?? []), ...cli.buildArgs].map(value => nonBlank(value, 'buildArgs')),
+    buildArgs: [...(project.buildArgs ?? []), ...cli.buildArgs].map((value, index) => nonBlank(
+      value,
+      `合并后的 buildArgs[${index}]`,
+      '请检查 --build-arg 或项目配置 buildArgs',
+    )),
     includeTests: cli.includeTests ?? project.includeTests ?? false,
-    javaCommand: cli.javaCommand === undefined ? undefined : nonBlank(cli.javaCommand, 'javaCommand'),
-    buildCommand: cli.buildCommand === undefined ? undefined : nonBlank(cli.buildCommand, 'buildCommand'),
+    javaCommand: cli.javaCommand === undefined ? undefined : nonBlank(cli.javaCommand, 'javaCommand', '请通过 --java 指定工具路径'),
+    buildCommand: cli.buildCommand === undefined ? undefined : nonBlank(cli.buildCommand, 'buildCommand', '请通过 --build-command 指定工具路径'),
   }
 }

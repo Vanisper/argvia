@@ -190,10 +190,22 @@ describe('java-run 配置组合', () => {
         expect(result.text).toContain(flag)
       for (const key of ['--buildTool', '--mainClass', '--includeTests', '--javaCommand', '--buildCommand'])
         expect(result.text).not.toContain(key)
-      if (action === 'init')
+      expect(result.text).toContain('--include-tests=false')
+      expect(result.text).toContain('取值仅支持等号形式')
+      expect(result.text).toContain('每次传入一个非空白 JVM 参数；可重复')
+      expect(result.text).toContain('每次传入一个应用参数，保留空串与空白；可重复')
+      expect(result.text).toContain('应用参数最后追加 -- 透传值')
+      if (action === 'init') {
         expect(result.text).toContain('--force')
-      else
+        expect(result.text).toContain('仅使用本次输入与应用默认值，不读取旧配置')
+        expect(result.text).not.toContain('配置 → CLI')
+        expect(result.text).not.toContain('继承项目配置')
+      }
+      else {
         expect(result.text).not.toContain('--force')
+        expect(result.text).toContain('配置标量省略时继承项目配置')
+        expect(result.text).toContain('数组按配置 → CLI 追加')
+      }
     }
     for (const service of Object.values(services))
       expect(service).not.toHaveBeenCalled()
@@ -372,7 +384,7 @@ describe('java-run 配置组合', () => {
       kind: 'failed',
       exitCode: 2,
       commandPath: ['java-run', action],
-      message: 'mainClass 必须是有效的 Java 类全名',
+      message: 'mainClass 必须是有效的 Java 类全名；请通过 --main 或项目配置 mainClass 修正',
     })
     if (action === 'init')
       expect(services.readProjectConfig).not.toHaveBeenCalled()
@@ -394,7 +406,7 @@ describe('java-run 配置组合', () => {
         kind: 'failed',
         exitCode: 2,
         commandPath: ['java-run', action],
-        message: 'cwd 必须是非空字符串',
+        message: 'cwd 必须是非空字符串；请通过 --cwd 指定项目目录',
       })
       for (const service of Object.values(services))
         expect(service).not.toHaveBeenCalled()
@@ -402,19 +414,29 @@ describe('java-run 配置组合', () => {
   })
 
   it.each([
-    { project: { mainClass: 'invalid-name' }, field: 'mainClass', argv: [] },
-    { project: { module: 'app,lib' }, field: 'module', argv: [] },
-    { project: { jvmArgs: [' '] }, field: 'jvmArgs', argv: ['--jvm-arg=-Xmx1g'] },
-    { project: { buildArgs: [''] }, field: 'buildArgs', argv: ['--build-arg=--info'] },
-  ])('项目配置中的无效领域值也在组合后拒绝：$field', async ({ project, field, argv }) => {
+    { project: { mainClass: 'invalid-name' }, field: 'mainClass', flag: '--main', argv: [] },
+    { project: { module: 'app,lib' }, field: 'module', flag: '--module', argv: [] },
+    { project: { jvmArgs: [' '] }, field: 'jvmArgs[0]', flag: '--jvm-arg', argv: ['--jvm-arg=-Dtoken=not-printed'] },
+    { project: { buildArgs: [''] }, field: 'buildArgs[0]', flag: '--build-arg', argv: ['--build-arg=-Dtoken=not-printed'] },
+    { project: { jvmArgs: ['-Xmx1g', '-Dtoken=not-printed'] }, field: 'jvmArgs[2]', flag: '--jvm-arg', argv: ['--jvm-arg= '] },
+    { project: { buildArgs: ['--info', '-Dtoken=not-printed'] }, field: 'buildArgs[2]', flag: '--build-arg', argv: ['--build-arg= '] },
+  ])('合并后的领域错误指明字段、零基下标和修正入口，不回显参数：$field', async ({ project, field, flag, argv }) => {
     const { command, services } = createApplication(project)
+    const result = await run(command, { argv })
 
-    expect(await run(command, { argv })).toMatchObject({
+    expect(result).toMatchObject({
       kind: 'failed',
       exitCode: 2,
       commandPath: ['java-run', 'run'],
       message: expect.stringContaining(field),
     })
+    if (result.kind === 'failed') {
+      expect(result.message).toContain(flag)
+      expect(result.message).toContain('项目配置')
+      expect(result.message).not.toContain('not-printed')
+      if (field.includes('['))
+        expect(result.message).toContain(`合并后的 ${field}`)
+    }
     expect(services.readProjectConfig).toHaveBeenCalledExactlyOnceWith('/project')
     expect(services.launch).not.toHaveBeenCalled()
     expect(services.plan).not.toHaveBeenCalled()
@@ -436,18 +458,18 @@ describe('java-run 配置组合', () => {
   })
 
   it.each([
-    { option: '--java= ', field: 'javaCommand' },
-    { option: '--build-command= ', field: 'buildCommand' },
-    { option: '--jvm-arg= ', field: 'jvmArgs' },
-    { option: '--build-arg= ', field: 'buildArgs' },
-  ])('空白工具或启动参数属于预期领域失败：$option', async ({ option, field }) => {
+    { option: '--java= ', message: 'javaCommand 必须是非空字符串；请通过 --java 指定工具路径' },
+    { option: '--build-command= ', message: 'buildCommand 必须是非空字符串；请通过 --build-command 指定工具路径' },
+    { option: '--jvm-arg= ', message: '合并后的 jvmArgs[0] 必须是非空字符串；请检查 --jvm-arg 或项目配置 jvmArgs' },
+    { option: '--build-arg= ', message: '合并后的 buildArgs[0] 必须是非空字符串；请检查 --build-arg 或项目配置 buildArgs' },
+  ])('空白工具或启动参数属于预期领域失败：$option', async ({ option, message }) => {
     const { command, services } = createApplication()
 
     expect(await run(command, { argv: [option] })).toEqual({
       kind: 'failed',
       exitCode: 2,
       commandPath: ['java-run', 'run'],
-      message: `${field} 必须是非空字符串`,
+      message,
     })
     expect(services.launch).not.toHaveBeenCalled()
     expect(services.plan).not.toHaveBeenCalled()

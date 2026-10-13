@@ -61,7 +61,7 @@ describe('启动配置组合', () => {
   })
 
   it.each(['1App', 'com..App', 'com.App;exit', 'com.App-name', 'com/App', 'Invalid³', 'example.Main\n', 'example.Main\r\n'])('拒绝无效主类与尾部换行：%j', (mainClass) => {
-    expect(() => resolveLaunchConfig(createInput({ mainClass }), {}, { cwd: '/project' })).toThrow('mainClass 必须是有效的 Java 类全名')
+    expect(() => resolveLaunchConfig(createInput({ mainClass }), {}, { cwd: '/project' })).toThrow('mainClass 必须是有效的 Java 类全名；请通过 --main 或项目配置 mainClass 修正')
   })
 
   it.each(['app', ':app', ':apps:admin-server', ':', 'apps/my app'])('单模块选择器只移除首尾空白：%s', (module) => {
@@ -71,20 +71,20 @@ describe('启动配置组合', () => {
   })
 
   it.each(['app,lib', '!app', '-app', '?app'])('拒绝多选、排除与可选模块选择器：%s', (module) => {
-    expect(() => resolveLaunchConfig(createInput({ module }), {}, { cwd: '/project' })).toThrow('module 必须指定单个模块')
+    expect(() => resolveLaunchConfig(createInput({ module }), {}, { cwd: '/project' })).toThrow('module 必须指定单个模块，不能多选、排除或使用可选选择器；请通过 --module 或项目配置 module 修正')
   })
 
   it.each([
-    { input: { cwd: '' }, field: 'cwd' },
-    { input: { cwd: ' \t ' }, field: 'cwd' },
-    { input: { module: '' }, field: 'module' },
-    { input: { mainClass: ' ' }, field: 'mainClass' },
-    { input: { javaCommand: '' }, field: 'javaCommand' },
-    { input: { buildCommand: ' ' }, field: 'buildCommand' },
-    { input: { jvmArgs: [''] }, field: 'jvmArgs' },
-    { input: { buildArgs: [' \t '] }, field: 'buildArgs' },
-  ])('目录、工具和 JVM/build 参数拒绝空白值：$field', ({ input, field }) => {
-    expect(() => resolveLaunchConfig(createInput(input), {}, { cwd: '/project' })).toThrow(`${field} 必须是非空字符串`)
+    { input: { cwd: '' }, field: 'cwd', correction: '请通过 --cwd 指定项目目录' },
+    { input: { cwd: ' \t ' }, field: 'cwd', correction: '请通过 --cwd 指定项目目录' },
+    { input: { module: '' }, field: 'module', correction: '请通过 --module 或项目配置 module 指定单个模块' },
+    { input: { mainClass: ' ' }, field: 'mainClass', correction: '请通过 --main 或项目配置 mainClass 指定合法的 Java 类全名' },
+    { input: { javaCommand: '' }, field: 'javaCommand', correction: '请通过 --java 指定工具路径' },
+    { input: { buildCommand: ' ' }, field: 'buildCommand', correction: '请通过 --build-command 指定工具路径' },
+    { input: { jvmArgs: [''] }, field: '合并后的 jvmArgs[0]', correction: '请检查 --jvm-arg 或项目配置 jvmArgs' },
+    { input: { buildArgs: [' \t '] }, field: '合并后的 buildArgs[0]', correction: '请检查 --build-arg 或项目配置 buildArgs' },
+  ])('目录、工具和 JVM/build 参数拒绝空白值并提示修正入口：$field', ({ input, field, correction }) => {
+    expect(() => resolveLaunchConfig(createInput(input), {}, { cwd: '/project' })).toThrow(`${field} 必须是非空字符串；${correction}`)
   })
 
   it('合法路径和原始应用参数保留空白与边界', () => {

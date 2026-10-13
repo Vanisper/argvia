@@ -121,7 +121,7 @@ describe('java-run 演示入口', () => {
 
     expect(result.status).toBe(2)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('java-run run: mainClass 必须是有效的 Java 类全名\n')
+    expect(result.stderr).toBe('java-run run: mainClass 必须是有效的 Java 类全名；请通过 --main 或项目配置 mainClass 修正\n')
   })
 
   it('注入非零启动状态，通过真实 Node 进程保留退出码', () => {
