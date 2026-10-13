@@ -39,6 +39,15 @@ pnpm dev deploy --help
 pnpm check
 ```
 
+运行 java-run 样本，查看共享选项、默认命令和参数转发如何组合：
+
+```sh
+pnpm exec turbo run dev --filter=@argvia/playground-java-run -- --help
+pnpm exec turbo run dev --filter=@argvia/playground-java-run -- --tool=gradle --arg=cli -- --help
+```
+
+样本使用内存配置并打印演示请求。输出说明与代码阅读路径见 [java-run 命令开发示例](docs/java-run.md)。
+
 `pnpm check` 包含构建、代码风格、严格类型检查、运行时测试和隔离的产物消费验证。两个包分别生成 ESM 与类型声明，Turborepo 按依赖关系调度构建：
 
 ```sh
@@ -56,10 +65,10 @@ pnpm exec turbo run build --filter=@argvia/node
 | [`packages/core`](packages/core/) | `@argvia/core`：命令定义、类型推导、解析、校验、帮助和显式 argv 执行 |
 | [`packages/node`](packages/node/) | `@argvia/node`：Node.js 进程入口 |
 | [`playground/basic`](playground/basic/) | 组合 core 与 Node 包，展示叶子命令、共享选项和进程入口 |
-| [`playground/java-run`](playground/java-run/) | 使用 core 验证配置覆盖、命令局部选项与参数转发 |
+| [`playground/java-run`](playground/java-run/) | 组合 core 与 Node 包，演示类型化命令、配置覆盖与参数转发 |
 | [`docs/api.md`](docs/api.md) | 当前 API 与输入行为 |
 | [`docs/design.md`](docs/design.md) | 模块边界、类型约束与后续设计问题 |
 | [`docs/input-contract.md`](docs/input-contract.md) | 字段拼写、重复字符串、透传和默认命令的组合契约 |
-| [`docs/java-run.md`](docs/java-run.md) | run、plan、init 的配置组合与参数转发场景 |
+| [`docs/java-run.md`](docs/java-run.md) | 可运行的 java-run 示例、输出说明与代码阅读路径 |
 
 支持显式长选项拼写、有序重复字符串、原样透传和默认子命令，java-run 样本覆盖三种命令的组合使用。Node 进程入口已验证，Bun 的兼容性仍待验证。
