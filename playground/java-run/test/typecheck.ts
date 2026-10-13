@@ -1,8 +1,12 @@
 import type { Command } from '@argvia/core'
-import type { InitRequest, JavaRunServices, LaunchConfig, LaunchInput } from './app.js'
-import { defineCommand } from '@argvia/core'
+import type { JavaRunServices } from '../src/app.js'
+import type { InitRequest, LaunchConfig } from '../src/config.js'
+import type { LaunchInput } from '../src/options.js'
+import { defineCommand, option } from '@argvia/core'
 import { expectTypeOf } from 'vitest'
-import { createJavaRunCommand, initOptions, launchOptions, resolveLaunchConfig } from './app.js'
+import { createJavaRunCommand } from '../src/app.js'
+import { resolveLaunchConfig } from '../src/config.js'
+import { launchOptions } from '../src/options.js'
 
 /** 检查共享定义和配置组合的类型，负例只参与编译检查 */
 export function verifyJavaRunTypes(): void {
@@ -71,7 +75,10 @@ export function verifyJavaRunTypes(): void {
   })
 
   const initCommand = defineCommand({
-    options: initOptions,
+    options: {
+      ...launchOptions,
+      force: option.boolean({ default: false }),
+    },
     passthrough: true,
     run({ options, passthrough }) {
       expectTypeOf(passthrough).toEqualTypeOf<readonly string[]>()
