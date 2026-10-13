@@ -1,5 +1,6 @@
 export { defineCommand } from './command.js'
 export { DefinitionError } from './errors.js'
+export { exit } from './exit.js'
 export { argument, option } from './fields.js'
 export { run } from './run.js'
 export type {
@@ -8,6 +9,7 @@ export type {
   CommandContext,
   CommandMeta,
   DefaultConfig,
+  ExitResult,
   FieldConfig,
   FieldRules,
   GroupDefinition,

@@ -87,8 +87,13 @@ const app = defineCommand({
 | `kind` | 内容 |
 | --- | --- |
 | `executed` | `value: unknown` 保存业务返回值 |
+| `exit` | `exitCode` 保存指定退出码，`commandPath` 保存实际命令路径 |
 | `help` | `text: string` 保存帮助 |
 | `invalid-input` | `diagnostic` 保存 `code`、`message` 和包含根程序名的 `commandPath` |
+
+`exit(code)` 从 `@argvia/core` 导入，返回冻结且具有身份标记的 `ExitResult`。处理函数显式返回它时，执行器产生 `exit` 结果；同步返回与异步返回相同。退出码必须是 `0..255` 的整数，非法值抛出 `RangeError`。
+
+普通数字、同形对象、对象展开和序列化副本仍保留为业务数据。`exit()` 不终止进程，也不抛出异常；抛出该结果不属于退出协议。命令与退出结果应来自同一 core 实例。
 
 处理函数的异常或异步拒绝原样传播，不转成输入错误。业务返回值暂不进行泛型推导。
 
@@ -99,6 +104,7 @@ const app = defineCommand({
 | 成功 | 不自动打印返回值 | `0` |
 | 帮助 | stdout | `0` |
 | 输入错误 | stderr，并附帮助提示 | `2` |
-| 业务异常 | stderr | `1` |
+| 显式退出 | 无附加输出 | 指定退出码 |
+| 意外异常 | stderr | `1` |
 
-普通数值返回值不会自动当作退出码。业务退出结果、取消信号与 Bun 入口兼容性仍待设计和验证。
+普通数值返回值不会自动当作退出码。适配器设置 `process.exitCode`，不调用 `process.exit()`；处理函数自行修改进程状态不替代显式退出协议。取消状态可通过退出码传递，信号监听与子进程管理由应用负责。Bun 入口兼容性仍待验证。

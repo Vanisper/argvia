@@ -1,5 +1,6 @@
 declare const fieldValue: unique symbol
 declare const commandBrand: unique symbol
+declare const exitBrand: unique symbol
 
 /** 参数描述器携带的运行时规则 */
 export interface FieldRules {
@@ -159,9 +160,17 @@ export interface InputDiagnostic {
   readonly commandPath: readonly string[]
 }
 
+/** 由 exit 创建、供处理函数返回的显式退出结果 */
+export interface ExitResult {
+  /** 需要交给进程适配器的退出码，范围为 0..255 */
+  readonly exitCode: number
+  readonly [exitBrand]: true
+}
+
 /** 执行结果，业务异常通过 Promise 拒绝传播 */
 export type RunResult
   = | { readonly kind: 'executed', readonly value: unknown }
+    | { readonly kind: 'exit', readonly exitCode: number, readonly commandPath: readonly string[] }
     | { readonly kind: 'help', readonly text: string }
     | { readonly kind: 'invalid-input', readonly diagnostic: InputDiagnostic }
 

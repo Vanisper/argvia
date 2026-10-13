@@ -45,6 +45,22 @@ async function main() {
   assert.deepEqual(await core.run(wrapper, { argv: ['--item=a', '--item=b', '--', 'tail'] }), {
     kind: 'executed', value: [['a', 'b'], ['tail']],
   })
+  const requestedExit = core.exit(7)
+  assert.equal(Object.isFrozen(requestedExit), true)
+  const exitCommand = core.defineCommand({
+    name: 'tool',
+    commands: { launch: core.defineCommand({ run: async () => requestedExit }) },
+    defaultCommand: 'launch',
+  })
+  assert.deepEqual(await core.run(exitCommand, { argv: [] }), {
+    kind: 'exit', exitCode: 7, commandPath: ['tool', 'launch'],
+  })
+  for (const value of [7, { ...requestedExit }]) {
+    assert.deepEqual(await core.run(core.defineCommand({ run: () => value }), { argv: [] }), {
+      kind: 'executed', value,
+    })
+  }
+  assert.throws(() => core.exit(256), RangeError)
   await assert.rejects(import('@argvia/core/dist/index.js'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
   await assert.rejects(import('@argvia/node'), { code: 'ERR_MODULE_NOT_FOUND' })
   process.stdout.write('核心入口消费通过\n')

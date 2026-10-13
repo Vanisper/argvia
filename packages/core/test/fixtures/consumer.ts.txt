@@ -1,12 +1,13 @@
 import type {
   Command,
   DefaultConfig,
+  ExitResult,
   OptionalConfig,
   RequiredConfig,
   RunConfig,
   RunResult,
 } from '@argvia/core'
-import { defineCommand, option, run } from '@argvia/core'
+import { defineCommand, exit, option, run } from '@argvia/core'
 // @ts-expect-error 核心入口不导出进程适配器
 import { runMain } from '@argvia/core'
 
@@ -82,3 +83,21 @@ option.boolean({ default: 'false' })
 option.boolean({ required: true })
 // @ts-expect-error 默认值不能显式为 undefined
 option.boolean({ default: undefined })
+
+const requestedExit: ExitResult = exit(7)
+expectType<number>(requestedExit.exitCode)
+// @ts-expect-error 退出结果只读
+requestedExit.exitCode = 1
+// @ts-expect-error 退出结果只能由工厂创建
+expectType<ExitResult>({ exitCode: 7 })
+// @ts-expect-error 退出码必须是数值
+exit('7')
+const exitCommand = defineCommand({ run: async () => requestedExit })
+run(exitCommand, { argv: [] }).then((result) => {
+  if (result.kind === 'exit') {
+    expectType<number>(result.exitCode)
+    expectType<readonly string[]>(result.commandPath)
+    // @ts-expect-error 退出分支没有业务值
+    expectType(result.value)
+  }
+})

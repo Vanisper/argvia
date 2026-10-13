@@ -83,6 +83,15 @@ describe('进程适配包与核心包产物的隔离消费', () => {
 
   it.each([
     { argv: ['success'], status: 0, stdout: '', stderr: '' },
+    { argv: ['exit'], status: 7, stdout: '', stderr: '' },
+    { argv: ['exit-zero'], status: 0, stdout: '', stderr: '' },
+    { argv: ['exit-two'], status: 2, stdout: '', stderr: '' },
+    { argv: ['cancel'], status: 130, stdout: '', stderr: '' },
+    { argv: ['terminate'], status: 143, stdout: '', stderr: '' },
+    { argv: ['exit-max'], status: 255, stdout: '', stderr: '' },
+    { argv: ['ordinary'], status: 0, stdout: '', stderr: '' },
+    { argv: ['copied'], status: 0, stdout: '', stderr: '' },
+    { argv: ['invalid-exit'], status: 1, stdout: '', stderr: '退出码必须是 0..255 的整数' },
     { argv: [], status: 2, stdout: '', stderr: 'action' },
     { argv: ['throw'], status: 1, stdout: '', stderr: '业务失败' },
     { argv: ['reject'], status: 1, stdout: '', stderr: '异步业务失败' },

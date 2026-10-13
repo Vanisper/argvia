@@ -12,6 +12,7 @@ import type {
 } from './types.js'
 import { getDefinition } from './command.js'
 import { DECIMAL_NUMBER } from './constants.js'
+import { isExitResult } from './exit.js'
 import { renderHelp } from './help.js'
 import { isHelp, scanInput } from './scan.js'
 
@@ -168,5 +169,7 @@ export async function run(command: Command, { argv }: RunConfig): Promise<RunRes
   if (parsed.kind === 'invalid-input')
     return parsed
   const value = await selected.invoke(parsed.context)
+  if (isExitResult(value))
+    return { kind: 'exit', exitCode: value.exitCode, commandPath: [...path] }
   return { kind: 'executed', value }
 }

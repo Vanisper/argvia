@@ -1,5 +1,5 @@
 // @env node
-import { argument, defineCommand } from '@argvia/core'
+import { argument, defineCommand, exit } from '@argvia/core'
 import { runMain } from '@argvia/node'
 
 const app = defineCommand({
@@ -10,6 +10,24 @@ const app = defineCommand({
       throw new Error('业务失败')
     if (args.action === 'reject')
       return Promise.reject(new Error('异步业务失败'))
+    if (args.action === 'exit')
+      return exit(7)
+    if (args.action === 'exit-zero')
+      return exit(0)
+    if (args.action === 'exit-two')
+      return exit(2)
+    if (args.action === 'cancel')
+      return Promise.resolve(exit(130))
+    if (args.action === 'terminate')
+      return exit(143)
+    if (args.action === 'exit-max')
+      return exit(255)
+    if (args.action === 'ordinary')
+      return { kind: 'exit', exitCode: 7 }
+    if (args.action === 'copied')
+      return { ...exit(7) }
+    if (args.action === 'invalid-exit')
+      return exit(-1)
     return 42
   },
 })
