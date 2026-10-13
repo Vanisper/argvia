@@ -1,5 +1,5 @@
 // @env node
-import { argument, defineCommand, exit } from '@argvia/core'
+import { argument, CommandError, defineCommand, exit } from '@argvia/core'
 import { runMain } from '@argvia/node'
 
 const app = defineCommand({
@@ -10,6 +10,22 @@ const app = defineCommand({
       throw new Error('业务失败')
     if (args.action === 'reject')
       return Promise.reject(new Error('异步业务失败'))
+    if (args.action === 'expected')
+      throw new CommandError('配置无效')
+    if (args.action === 'expected-two')
+      throw new CommandError('主类无效', { exitCode: 2 })
+    if (args.action === 'expected-async')
+      return Promise.reject(new CommandError('工具不可用', { exitCode: 17 }))
+    if (args.action === 'returned-error')
+      return new CommandError('普通返回值', { exitCode: 7 })
+    if (args.action === 'named-error') {
+      const error = new Error('意外故障')
+      error.name = 'CommandError'
+      error.exitCode = 17
+      throw error
+    }
+    if (args.action === 'invalid-error-code')
+      throw new CommandError('无效退出码', { exitCode: 0 })
     if (args.action === 'exit')
       return exit(7)
     if (args.action === 'exit-zero')

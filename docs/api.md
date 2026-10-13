@@ -88,6 +88,7 @@ const app = defineCommand({
 | --- | --- |
 | `executed` | `value: unknown` 保存业务返回值 |
 | `exit` | `exitCode` 保存指定退出码，`commandPath` 保存实际命令路径 |
+| `failed` | `message`、`exitCode` 和实际 `commandPath` 保存预期业务失败 |
 | `help` | `text: string` 保存帮助 |
 | `invalid-input` | `diagnostic` 保存 `code`、`message` 和包含根程序名的 `commandPath` |
 
@@ -95,7 +96,9 @@ const app = defineCommand({
 
 普通数字、同形对象、对象展开和序列化副本仍保留为业务数据。`exit()` 不终止进程，也不抛出异常；抛出该结果不属于退出协议。命令与退出结果应来自同一 core 实例。
 
-处理函数的异常或异步拒绝原样传播，不转成输入错误。业务返回值暂不进行泛型推导。
+`CommandError(message, { exitCode? })` 从 core 导入，表达可直接展示给用户的预期命令失败。消息必须包含非空白内容，退出码默认 `1`，允许 `1..255` 的整数；空白消息抛出 `TypeError`，非法退出码抛出 `RangeError`。可用 `CommandErrorOptions` 标注其配置。
+
+处理函数抛出或异步拒绝 `CommandError` 时，`run()` 返回独立的 `failed` 结果，不转换成参数解析错误。返回该错误对象仍属于普通业务数据；同名或同形对象不会被识别。其他异常和拒绝值原样传播。业务返回值暂不进行泛型推导。完整规则见[命令执行契约](execution-contract.md)。
 
 `runMain(command)` 从 `@argvia/node` 导入，接收 `@argvia/core` 创建的命令，读取 `process.argv.slice(2)` 并设置 `process.exitCode`：
 
@@ -105,6 +108,7 @@ const app = defineCommand({
 | 帮助 | stdout | `0` |
 | 输入错误 | stderr，并附帮助提示 | `2` |
 | 显式退出 | 无附加输出 | 指定退出码 |
+| 预期业务失败 | stderr 输出 `命令路径: 消息`，不附帮助 | 指定退出码 |
 | 意外异常 | stderr | `1` |
 
 普通数值返回值不会自动当作退出码。适配器设置 `process.exitCode`，不调用 `process.exit()`；处理函数自行修改进程状态不替代显式退出协议。取消状态可通过退出码传递，信号监听与子进程管理由应用负责。Bun 入口兼容性仍待验证。

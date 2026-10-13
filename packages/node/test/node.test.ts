@@ -83,6 +83,9 @@ describe('进程适配包与核心包产物的隔离消费', () => {
 
   it.each([
     { argv: ['success'], status: 0, stdout: '', stderr: '' },
+    { argv: ['returned-error'], status: 0, stdout: '', stderr: '' },
+    { argv: ['named-error'], status: 1, stdout: '', stderr: '意外故障' },
+    { argv: ['invalid-error-code'], status: 1, stdout: '', stderr: '预期失败退出码必须是 1..255 的整数' },
     { argv: ['exit'], status: 7, stdout: '', stderr: '' },
     { argv: ['exit-zero'], status: 0, stdout: '', stderr: '' },
     { argv: ['exit-two'], status: 2, stdout: '', stderr: '' },
@@ -113,6 +116,23 @@ describe('进程适配包与核心包产物的隔离消费', () => {
       expect(child.stderr).toContain(stderr)
     else
       expect(child.stderr).toBe('')
+  })
+
+  it.each([
+    { action: 'expected', status: 1, stderr: 'fixture: 配置无效\n' },
+    { action: 'expected-two', status: 2, stderr: 'fixture: 主类无效\n' },
+    { action: 'expected-async', status: 17, stderr: 'fixture: 工具不可用\n' },
+  ])('预期业务失败只输出路径与消息：$action', ({ action, status, stderr }) => {
+    const child = spawnSync(process.execPath, ['terminal.mjs', action], {
+      cwd: consumerDirectory,
+      encoding: 'utf8',
+      timeout: 20_000,
+    })
+
+    expect(child.error).toBeUndefined()
+    expect(child.status).toBe(status)
+    expect(child.stdout).toBe('')
+    expect(child.stderr).toBe(stderr)
   })
 
   it.each([

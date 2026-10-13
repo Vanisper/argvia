@@ -1,5 +1,5 @@
-import type { Command, ExitResult, RunResult } from '@argvia/core'
-import { argument, defineCommand, exit, option, run } from '@argvia/core'
+import type { Command, CommandErrorOptions, ExitResult, RunResult } from '@argvia/core'
+import { argument, CommandError, defineCommand, exit, option, run } from '@argvia/core'
 import { runMain } from '@argvia/node'
 
 function expectType<Value>(value: Value): void {
@@ -38,3 +38,11 @@ expectType<Promise<void>>(runMain(exiting))
 exit('7')
 // @ts-expect-error 普通对象不具备退出结果品牌
 const ordinary: ExitResult = { exitCode: 7 }
+
+const errorOptions: CommandErrorOptions = { exitCode: 2 }
+const expectedFailure = new CommandError('配置无效', errorOptions)
+const failing = defineCommand({ run() { throw expectedFailure } })
+expectType<Promise<void>>(runMain(failing))
+expectType<number>(expectedFailure.exitCode)
+// @ts-expect-error 预期失败码必须是数字
+new CommandError('配置无效', { exitCode: '2' })

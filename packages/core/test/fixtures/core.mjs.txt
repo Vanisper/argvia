@@ -61,6 +61,26 @@ async function main() {
     })
   }
   assert.throws(() => core.exit(256), RangeError)
+  class ProjectError extends core.CommandError {}
+  const expectedFailure = new ProjectError('项目配置无效', { exitCode: 2 })
+  const failedCommand = core.defineCommand({
+    name: 'tool',
+    commands: { launch: core.defineCommand({ run: async () => { throw expectedFailure } }) },
+    defaultCommand: 'launch',
+  })
+  assert.deepEqual(await core.run(failedCommand, { argv: [] }), {
+    kind: 'failed', message: '项目配置无效', exitCode: 2, commandPath: ['tool', 'launch'],
+  })
+  const returnedFailure = await core.run(core.defineCommand({ run: () => expectedFailure }), { argv: [] })
+  assert.equal(returnedFailure.kind, 'executed')
+  assert.equal(returnedFailure.value, expectedFailure)
+  const unexpectedFailure = new Error('意外异常')
+  await assert.rejects(
+    core.run(core.defineCommand({ run: () => { throw unexpectedFailure } }), { argv: [] }),
+    error => error === unexpectedFailure,
+  )
+  assert.throws(() => new core.CommandError(' '), TypeError)
+  assert.throws(() => new core.CommandError('项目无效', { exitCode: 0 }), RangeError)
   await assert.rejects(import('@argvia/core/dist/index.js'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
   await assert.rejects(import('@argvia/node'), { code: 'ERR_MODULE_NOT_FOUND' })
   process.stdout.write('核心入口消费通过\n')

@@ -167,10 +167,11 @@ export interface ExitResult {
   readonly [exitBrand]: true
 }
 
-/** 执行结果，业务异常通过 Promise 拒绝传播 */
+/** 执行结果，未声明为预期失败的异常通过 Promise 拒绝传播 */
 export type RunResult
   = | { readonly kind: 'executed', readonly value: unknown }
     | { readonly kind: 'exit', readonly exitCode: number, readonly commandPath: readonly string[] }
+    | { readonly kind: 'failed', readonly message: string, readonly exitCode: number, readonly commandPath: readonly string[] }
     | { readonly kind: 'help', readonly text: string }
     | { readonly kind: 'invalid-input', readonly diagnostic: InputDiagnostic }
 

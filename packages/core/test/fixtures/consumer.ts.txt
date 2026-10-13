@@ -1,5 +1,6 @@
 import type {
   Command,
+  CommandErrorOptions,
   DefaultConfig,
   ExitResult,
   OptionalConfig,
@@ -7,7 +8,7 @@ import type {
   RunConfig,
   RunResult,
 } from '@argvia/core'
-import { defineCommand, exit, option, run } from '@argvia/core'
+import { CommandError, defineCommand, exit, option, run } from '@argvia/core'
 // @ts-expect-error 核心入口不导出进程适配器
 import { runMain } from '@argvia/core'
 
@@ -99,5 +100,26 @@ run(exitCommand, { argv: [] }).then((result) => {
     expectType<readonly string[]>(result.commandPath)
     // @ts-expect-error 退出分支没有业务值
     expectType(result.value)
+  }
+})
+
+const errorOptions: CommandErrorOptions = { exitCode: 2 }
+const expectedFailure = new CommandError('项目无效', errorOptions)
+expectType<Error>(expectedFailure)
+expectType<number>(expectedFailure.exitCode)
+// @ts-expect-error 错误退出码只读
+expectedFailure.exitCode = 1
+// @ts-expect-error 消息必须是字符串
+new CommandError(7)
+// @ts-expect-error 退出码不能显式为 undefined
+new CommandError('项目无效', { exitCode: undefined })
+const failedCommand = defineCommand({ run: async () => { throw expectedFailure } })
+run(failedCommand, { argv: [] }).then((result) => {
+  if (result.kind === 'failed') {
+    expectType<string>(result.message)
+    expectType<number>(result.exitCode)
+    expectType<readonly string[]>(result.commandPath)
+    // @ts-expect-error 预期失败不是解析错误
+    expectType(result.diagnostic)
   }
 })

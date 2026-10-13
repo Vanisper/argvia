@@ -12,6 +12,7 @@ import type {
 } from './types.js'
 import { getDefinition } from './command.js'
 import { DECIMAL_NUMBER } from './constants.js'
+import { CommandError } from './errors.js'
 import { isExitResult } from './exit.js'
 import { renderHelp } from './help.js'
 import { isHelp, scanInput } from './scan.js'
@@ -128,7 +129,7 @@ function parseInput(
 /**
  * 选择命令、解析参数并等待处理函数完成
  *
- * @description 输入错误以结果返回，业务异常原样传播；不读取进程参数、不输出文本、不设置退出码
+ * @description 输入错误与处理函数抛出的 CommandError 以结果返回，其他异常原样传播；不读取进程参数、不输出文本、不设置退出码
  */
 export async function run(command: Command, { argv }: RunConfig): Promise<RunResult> {
   let selected = getDefinition(command)
@@ -168,7 +169,21 @@ export async function run(command: Command, { argv }: RunConfig): Promise<RunRes
   const parsed = parseInput(selected, input, path)
   if (parsed.kind === 'invalid-input')
     return parsed
-  const value = await selected.invoke(parsed.context)
+  let value: unknown
+  try {
+    value = await selected.invoke(parsed.context)
+  }
+  catch (error) {
+    if (error instanceof CommandError) {
+      return {
+        kind: 'failed',
+        message: error.message,
+        exitCode: error.exitCode,
+        commandPath: [...path],
+      }
+    }
+    throw error
+  }
   if (isExitResult(value))
     return { kind: 'exit', exitCode: value.exitCode, commandPath: [...path] }
   return { kind: 'executed', value }

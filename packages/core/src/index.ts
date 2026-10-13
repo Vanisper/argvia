@@ -1,5 +1,6 @@
 export { defineCommand } from './command.js'
-export { DefinitionError } from './errors.js'
+export { CommandError, DefinitionError } from './errors.js'
+export type { CommandErrorOptions } from './errors.js'
 export { exit } from './exit.js'
 export { argument, option } from './fields.js'
 export { run } from './run.js'
