@@ -1,0 +1,23 @@
+import type { Command, RunResult } from '@argvia/core'
+import { argument, defineCommand, run } from '@argvia/core'
+import { runMain } from '@argvia/node'
+
+function expectType<Value>(value: Value): void {
+  void value
+}
+
+const command: Command = defineCommand({
+  args: [argument.string('action', { required: true })],
+  run({ args }) {
+    expectType<string>(args.action)
+    // @ts-expect-error 核心包推导的上下文不包含未声明参数
+    expectType(args.missing)
+    return args.action
+  },
+})
+
+expectType<Promise<void>>(runMain(command))
+expectType<Promise<RunResult>>(run(command, { argv: ['ready'] }))
+
+// @ts-expect-error 进程适配器只接受核心包创建的命令
+runMain({ name: 'unregistered' })

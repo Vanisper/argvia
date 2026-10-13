@@ -24,7 +24,12 @@ async function main() {
     kind: 'executed',
     value: { verbose: true, force: false },
   })
+  const help = await core.run(command, { argv: ['--help'] })
+  assert.equal(help.kind, 'help')
+  assert.match(help.text, /--verbose/u)
+  assert.match(help.text, /--force/u)
   await assert.rejects(import('@argvia/core/dist/index.js'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
+  await assert.rejects(import('@argvia/node'), { code: 'ERR_MODULE_NOT_FOUND' })
   process.stdout.write('核心入口消费通过\n')
 }
 

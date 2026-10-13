@@ -3,19 +3,23 @@ import assert from 'node:assert/strict'
 import process from 'node:process'
 
 async function main() {
-  const { argument, defineCommand } = await import('@argvia/core')
+  const { argument, defineCommand, run } = await import('@argvia/core')
   const { runMain } = await import('@argvia/node')
-  let action
+  const actions = []
   const command = defineCommand({
     args: [argument.string('action', { required: true })],
     run({ args }) {
-      action = args.action
+      actions.push(args.action)
+      return args.action
     },
   })
 
   await runMain(command)
-  assert.equal(action, 'ready')
+  assert.deepEqual(actions, ['ready'])
   assert.equal(process.exitCode, 0)
+  assert.deepEqual(await run(command, { argv: ['again'] }), { kind: 'executed', value: 'again' })
+  assert.deepEqual(actions, ['ready', 'again'])
+  await assert.rejects(import('@argvia/node/dist/index.js'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
   process.stdout.write('跨包消费通过\n')
 }
 

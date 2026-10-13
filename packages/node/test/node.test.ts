@@ -1,6 +1,7 @@
 // @env node
 import { spawnSync } from 'node:child_process'
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 const packageDirectory = fileURLToPath(new URL('../', import.meta.url))
 const fixtureDirectory = fileURLToPath(new URL('./fixtures/', import.meta.url))
 const coreDirectory = dirname(dirname(fileURLToPath(import.meta.resolve('@argvia/core'))))
+const compiler = createRequire(import.meta.url).resolve('typescript/lib/tsc.js')
 let consumerDirectory = ''
 
 describe('进程适配包与核心包产物的隔离消费', () => {
@@ -21,7 +23,7 @@ describe('进程适配包与核心包产物的隔离消费', () => {
       cpSync(join(source, 'dist'), join(installedPackage, 'dist'), { recursive: true })
     }
     writeFileSync(join(consumerDirectory, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
-    for (const fixture of ['node.mjs', 'terminal.mjs']) {
+    for (const fixture of ['node.mjs', 'terminal.mjs', 'consumer.ts']) {
       writeFileSync(
         join(consumerDirectory, fixture),
         readFileSync(join(fixtureDirectory, `${fixture}.txt`), 'utf8'),
@@ -70,5 +72,46 @@ describe('进程适配包与核心包产物的隔离消费', () => {
       expect(child.stderr).toContain(stderr)
     else
       expect(child.stderr).toBe('')
+  })
+
+  it.each([
+    { module: 'NodeNext', moduleResolution: 'NodeNext' },
+    { module: 'ESNext', moduleResolution: 'Bundler' },
+  ])('$moduleResolution 消费者从两个包的声明检查共享命令类型', { timeout: 30_000 }, ({ module, moduleResolution }) => {
+    const config = join(consumerDirectory, `tsconfig.${moduleResolution}.json`)
+    writeFileSync(config, JSON.stringify({
+      compilerOptions: {
+        target: 'ES2022',
+        module,
+        moduleResolution,
+        strict: true,
+        exactOptionalPropertyTypes: true,
+        noUncheckedIndexedAccess: true,
+        noEmit: true,
+        types: [],
+        skipLibCheck: false,
+      },
+      files: ['consumer.ts'],
+    }))
+    const child = spawnSync(process.execPath, [compiler, '--project', config, '--listFiles'], {
+      cwd: consumerDirectory,
+      encoding: 'utf8',
+      timeout: 20_000,
+    })
+
+    expect(child.error).toBeUndefined()
+    expect(child.stderr).toBe('')
+    expect(child.status, child.stdout).toBe(0)
+    const output = child.stdout.replaceAll('\\', '/')
+    const declarations = output.split(/\r?\n/u).filter(file => file.includes('/node_modules/@argvia/'))
+    const installedDirectory = join(consumerDirectory, 'node_modules', '@argvia').replaceAll('\\', '/')
+    expect(declarations).toContain(`${installedDirectory}/core/dist/index.d.ts`)
+    expect(declarations).toContain(`${installedDirectory}/core/dist/types.d.ts`)
+    expect(declarations).toContain(`${installedDirectory}/node/dist/index.d.ts`)
+    expect(declarations.every(file => file.endsWith('.d.ts') && (
+      file.startsWith(`${installedDirectory}/core/dist/`)
+      || file.startsWith(`${installedDirectory}/node/dist/`)
+    ))).toBe(true)
+    expect(output).not.toContain('/@types/node/')
   })
 })
