@@ -62,4 +62,4 @@ pnpm exec turbo run build --filter=@argvia/node
 | [`docs/input-contract.md`](docs/input-contract.md) | 字段拼写、重复字符串、透传和默认命令的组合契约 |
 | [`docs/java-run.md`](docs/java-run.md) | run、plan、init 的配置组合与参数转发场景 |
 
-当前支持字段拼写映射、重复字符串与原样透传；默认子命令按输入契约继续实现。Node 进程入口已验证，Bun 的兼容性仍待验证。
+支持显式长选项拼写、有序重复字符串、原样透传和默认子命令，java-run 样本覆盖三种命令的组合使用。Node 进程入口已验证，Bun 的兼容性仍待验证。

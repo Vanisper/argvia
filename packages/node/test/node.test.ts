@@ -23,7 +23,7 @@ describe('进程适配包与核心包产物的隔离消费', () => {
       cpSync(join(source, 'dist'), join(installedPackage, 'dist'), { recursive: true })
     }
     writeFileSync(join(consumerDirectory, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
-    for (const fixture of ['node.mjs', 'terminal.mjs', 'consumer.ts']) {
+    for (const fixture of ['node.mjs', 'terminal.mjs', 'composition.mjs', 'consumer.ts']) {
       writeFileSync(
         join(consumerDirectory, fixture),
         readFileSync(join(fixtureDirectory, `${fixture}.txt`), 'utf8'),
@@ -47,6 +47,38 @@ describe('进程适配包与核心包产物的隔离消费', () => {
     expect(child.stderr).toBe('')
     expect(child.status).toBe(0)
     expect(child.stdout).toBe('跨包消费通过\n')
+  })
+
+  it.each([
+    { prefix: [], action: 'run' },
+    { prefix: ['run'], action: 'run' },
+    { prefix: ['plan'], action: 'plan' },
+    { prefix: ['init', '--force'], action: 'init' },
+  ])('两个包的产物组合解析命令 $prefix', ({ prefix, action }) => {
+    const tail = ['--help', '', ' a ', '--', 'x=y']
+    const child = spawnSync(process.execPath, [
+      'composition.mjs',
+      ...prefix,
+      '--main=example.App',
+      '--item=one',
+      '--item=two',
+      '--',
+      ...tail,
+    ], {
+      cwd: consumerDirectory,
+      encoding: 'utf8',
+      timeout: 20_000,
+    })
+
+    expect(child.error).toBeUndefined()
+    expect(child.status).toBe(0)
+    expect(child.stderr).toBe('')
+    expect(JSON.parse(child.stdout)).toEqual({
+      action,
+      args: {},
+      options: { mainClass: 'example.App', items: ['one', 'two'], ...(action === 'init' ? { force: true } : {}) },
+      passthrough: tail,
+    })
   })
 
   it.each([

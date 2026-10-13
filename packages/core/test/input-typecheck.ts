@@ -1,4 +1,4 @@
-import type { CommandContext, DefaultConfig, LeafDefinition, MultipleConfig, Option, OptionConfig, RequiredConfig } from '@argvia/core'
+import type { Command, CommandContext, DefaultConfig, GroupDefinition, LeafDefinition, MultipleConfig, Option, OptionConfig, RequiredConfig } from '@argvia/core'
 import { argument, defineCommand, option } from '@argvia/core'
 import { expectTypeOf } from 'vitest'
 
@@ -210,4 +210,58 @@ export function verifyPassthroughTypes(): void {
   defineCommand({ commands: { enabled }, passthrough: false })
   // @ts-expect-error 分组也不能显式声明 undefined 透传标记
   defineCommand({ commands: { enabled }, passthrough: undefined })
+}
+
+/** 检查默认子命令的静态键约束，实际存在性由定义阶段确认 */
+export function verifyDefaultCommandTypes(): void {
+  const launch = defineCommand({
+    passthrough: true,
+    options: { applicationArgs: option.string({ multiple: true, flag: '--arg' }) },
+    run({ options, passthrough }) {
+      expectTypeOf(options.applicationArgs).toEqualTypeOf<string[]>()
+      expectTypeOf(passthrough).toEqualTypeOf<readonly string[]>()
+      return [...options.applicationArgs, ...passthrough]
+    },
+  })
+  const plan = defineCommand({ run() {} })
+  const commands = { launch, plan } as const
+  const group: GroupDefinition<typeof commands> = { commands, defaultCommand: 'launch' }
+  const nested = defineCommand(group)
+  defineCommand({ commands: { nested, plan }, defaultCommand: 'nested' })
+  defineCommand({ defaultCommand: 'plan', commands })
+  defineCommand({ commands: { constructor: launch }, defaultCommand: 'constructor' })
+
+  const broadGroup: GroupDefinition = { commands, defaultCommand: 'launch' }
+  defineCommand(broadGroup)
+  const dynamicCommands: Record<string, Command> = { launch }
+  // 宽泛命令表丢失静态键集合，目标是否存在仍由运行时确认
+  defineCommand({ commands: dynamicCommands, defaultCommand: 'dynamic' })
+  const optionalCommands: { launch?: Command } = Math.random() > 0.5 ? { launch } : {}
+  defineCommand({ commands: optionalCommands, defaultCommand: 'launch' })
+
+  // @ts-expect-error 默认命令不能反向扩大已声明的命令键
+  defineCommand({ commands, defaultCommand: 'missing' })
+  // @ts-expect-error 先声明默认键也不能反向扩大已声明的命令键
+  defineCommand({ defaultCommand: 'missing', commands })
+  // @ts-expect-error 原型属性不是静态命令键
+  defineCommand({ commands, defaultCommand: 'constructor' })
+  // @ts-expect-error 空命令表没有可用默认键
+  defineCommand({ commands: {}, defaultCommand: 'launch' })
+  // @ts-expect-error 默认命令不能显式为 undefined
+  defineCommand({ commands, defaultCommand: undefined })
+  // @ts-expect-error 默认命令不能为 null
+  defineCommand({ commands, defaultCommand: null })
+  // @ts-expect-error 默认命令必须是字符串键
+  defineCommand({ commands, defaultCommand: 1 })
+
+  const unknownDefault = { commands, defaultCommand: 'missing' } as const
+  // @ts-expect-error 提取后的默认命令也必须属于静态命令表
+  defineCommand(unknownDefault)
+  const leafDefault = { run() {}, defaultCommand: 'launch' } as const
+  // @ts-expect-error 提取后的叶子定义不能声明默认子命令
+  defineCommand(leafDefault)
+  // @ts-expect-error 叶子定义不能显式声明 undefined 默认子命令
+  defineCommand({ run() {}, defaultCommand: undefined })
+  // @ts-expect-error 启用透传的叶子也不能声明默认子命令
+  defineCommand({ passthrough: true, run() {}, defaultCommand: 'launch' })
 }

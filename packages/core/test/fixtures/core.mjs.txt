@@ -29,9 +29,17 @@ async function main() {
   assert.equal(help.kind, 'help')
   assert.match(help.text, /--verbose-output/u)
   assert.match(help.text, /--force/u)
-  const wrapper = core.defineCommand({ passthrough: true, run: context => context.passthrough })
+  const leaf = core.defineCommand({
+    options: { items: core.option.string({ flag: '--item', multiple: true }) },
+    passthrough: true,
+    run: context => [context.options.items, context.passthrough],
+  })
+  const wrapper = core.defineCommand({ commands: { run: leaf }, defaultCommand: 'run' })
   assert.deepEqual(await core.run(wrapper, { argv: ['--', '--help', '', '--'] }), {
-    kind: 'executed', value: ['--help', '', '--'],
+    kind: 'executed', value: [[], ['--help', '', '--']],
+  })
+  assert.deepEqual(await core.run(wrapper, { argv: ['--item=a', '--item=b', '--', 'tail'] }), {
+    kind: 'executed', value: [['a', 'b'], ['tail']],
   })
   await assert.rejects(import('@argvia/core/dist/index.js'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
   await assert.rejects(import('@argvia/node'), { code: 'ERR_MODULE_NOT_FOUND' })

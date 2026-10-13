@@ -384,11 +384,111 @@ describe('java-run 配置组合', () => {
     expect(services.initialize).not.toHaveBeenCalled()
   })
 
-  it('根分组显示帮助，本阶段尚未提供默认命令', async () => {
-    const { command, services } = createApplication()
+  it.each([
+    { argv: [], overrides: {} },
+    {
+      argv: [
+        '--tool=maven',
+        '--jvm-arg=-Xmx1g',
+        '--arg=cli',
+        '--build-arg=--info',
+        '--arg=next',
+        '--',
+        '--help',
+        '',
+        ' ',
+        'a=b',
+      ],
+      overrides: {
+        buildTool: 'maven',
+        jvmArgs: ['-Xms256m', '-Xmx1g'],
+        applicationArgs: ['configured', 'cli', 'next', '--help', '', ' ', 'a=b'],
+        buildArgs: ['--offline', '--info'],
+      },
+    },
+    { argv: ['--', '--help'], overrides: { applicationArgs: ['configured', '--help'] } },
+  ])('省略 run 与显式 run 得到相同的配置和调用：$argv', async ({ argv, overrides }) => {
+    const project = Object.freeze({
+      buildTool: 'gradle' as const,
+      mainClass: 'example.Main',
+      includeTests: true,
+      jvmArgs: Object.freeze(['-Xms256m']),
+      applicationArgs: Object.freeze(['configured']),
+      buildArgs: Object.freeze(['--offline']),
+    })
+    const request = {
+      cwd: '/project',
+      buildTool: 'gradle',
+      build: 'auto',
+      module: undefined,
+      mainClass: 'example.Main',
+      includeTests: true,
+      javaCommand: undefined,
+      buildCommand: undefined,
+      jvmArgs: ['-Xms256m'],
+      applicationArgs: ['configured'],
+      buildArgs: ['--offline'],
+      ...overrides,
+    }
 
-    expect(await run(command, { argv: [] })).toMatchObject({ kind: 'help' })
+    for (const input of [argv, ['run', ...argv]]) {
+      const { command, services } = createApplication(project)
+      expect(await run(command, { argv: Object.freeze(input) })).toEqual({ kind: 'executed', value: request })
+      expect(services.readProjectConfig).toHaveBeenCalledExactlyOnceWith('/project')
+      expect(services.launch).toHaveBeenCalledExactlyOnceWith(request)
+      expect(services.plan).not.toHaveBeenCalled()
+      expect(services.initialize).not.toHaveBeenCalled()
+    }
+  })
+
+  it.each(['-h', '--help'])('根帮助标出默认命令，显式 run 帮助说明启动选项：%s', async (helpFlag) => {
+    const { command, services } = createApplication()
+    services.readProjectConfig.mockRejectedValue(new Error('旧配置无效'))
+
+    const rootHelp = await run(command, { argv: [helpFlag] })
+    expect(rootHelp.kind).toBe('help')
+    if (rootHelp.kind === 'help') {
+      expect(rootHelp.text).toContain('java-run')
+      expect(rootHelp.text).toContain('run')
+      expect(rootHelp.text).toContain('默认')
+      expect(rootHelp.text).toContain('plan')
+      expect(rootHelp.text).toContain('init')
+      expect(rootHelp.text).not.toContain('--tool')
+    }
+    const runHelp = await run(command, { argv: ['run', helpFlag] })
+    expect(runHelp.kind).toBe('help')
+    if (runHelp.kind === 'help') {
+      expect(runHelp.text).toContain('java-run run')
+      expect(runHelp.text).toContain('--tool')
+      expect(runHelp.text).not.toContain('子命令')
+    }
     for (const service of Object.values(services))
       expect(service).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { argv: ['plna'], code: 'unknown-command', commandPath: ['java-run'] },
+    { argv: ['--force'], code: 'unknown-option', commandPath: ['java-run', 'run'] },
+    { argv: ['--force', 'init'], code: 'unknown-option', commandPath: ['java-run', 'run'] },
+    { argv: ['--cwd', 'project', 'plan'], code: 'extra-argument', commandPath: ['java-run', 'run'] },
+  ])('默认命令按选定路径报告输入错误，不向后寻找命令词：$argv', async ({ argv, code, commandPath }) => {
+    const { command, services } = createApplication()
+
+    expect(await run(command, { argv })).toMatchObject({ kind: 'invalid-input', diagnostic: { code, commandPath } })
+    for (const service of Object.values(services))
+      expect(service).not.toHaveBeenCalled()
+  })
+
+  it('默认运行时选项值可以与子命令同名', async () => {
+    const { command, services } = createApplication()
+
+    expect(await run(command, { argv: ['--cwd', 'plan'] })).toMatchObject({
+      kind: 'executed',
+      value: { cwd: 'plan' },
+    })
+    expect(services.readProjectConfig).toHaveBeenCalledExactlyOnceWith('plan')
+    expect(services.launch).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ cwd: 'plan' }))
+    expect(services.plan).not.toHaveBeenCalled()
+    expect(services.initialize).not.toHaveBeenCalled()
   })
 })

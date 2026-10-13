@@ -1,0 +1,30 @@
+// @env node
+import process from 'node:process'
+import { defineCommand, option } from '@argvia/core'
+import { runMain } from '@argvia/node'
+
+const options = {
+  mainClass: option.string({ flag: '--main' }),
+  items: option.string({ flag: '--item', multiple: true }),
+}
+
+function command(action) {
+  return defineCommand({
+    options: action === 'init' ? { ...options, force: option.boolean({ default: false }) } : options,
+    passthrough: true,
+    run(context) {
+      process.stdout.write(`${JSON.stringify({ action, ...context })}\n`)
+    },
+  })
+}
+
+const app = defineCommand({
+  name: 'composition',
+  defaultCommand: 'run',
+  commands: { run: command('run'), plan: command('plan'), init: command('init') },
+})
+
+runMain(app).catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})

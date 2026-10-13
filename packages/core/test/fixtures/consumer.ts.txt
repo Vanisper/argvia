@@ -70,7 +70,11 @@ const command: Command = defineCommand({
 })
 
 const input: RunConfig = { argv: ['--entry=application'] }
-expectType<Promise<RunResult>>(run(command, input))
+const app = defineCommand({ commands: { run: command }, defaultCommand: 'run' })
+expectType<Promise<RunResult>>(run(app, input))
+
+// @ts-expect-error 默认命令不能扩大已注册命令键
+defineCommand({ commands: { run: command }, defaultCommand: 'missing' })
 
 // @ts-expect-error 布尔默认值不能使用字符串
 option.boolean({ default: 'false' })

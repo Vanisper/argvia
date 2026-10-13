@@ -130,6 +130,7 @@ export type LeafDefinition<
   readonly args?: Args
   readonly options?: Options
   readonly commands?: never
+  readonly defaultCommand?: never
   run: (context: NoInfer<CommandContext<Args, Options, Passthrough>>) => unknown
 } & (Passthrough extends true ? {
   /** 将首个独立 -- 之后的输入单独作为原始参数提供 */
@@ -139,8 +140,12 @@ export type LeafDefinition<
 })
 
 /** 由对象键指定子命令名称的分组定义 */
-export interface GroupDefinition extends CommandMeta {
-  readonly commands: Readonly<Record<string, Command>>
+export interface GroupDefinition<
+  Commands extends Readonly<Record<string, Command>> = Readonly<Record<string, Command>>,
+> extends CommandMeta {
+  readonly commands: Commands
+  /** 没有输入或首项为选项时选择的子命令键，帮助标记仍显示当前分组帮助 */
+  readonly defaultCommand?: NoInfer<keyof Commands & string>
   readonly args?: never
   readonly options?: never
   readonly run?: never
@@ -188,6 +193,7 @@ export interface ResolvedOption {
 export interface ResolvedGroup extends CommandMeta {
   readonly kind: 'group'
   readonly commands: Readonly<Record<string, Command>>
+  readonly defaultCommand?: string
 }
 
 export type ResolvedCommand = ResolvedLeaf | ResolvedGroup

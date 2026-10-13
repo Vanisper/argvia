@@ -106,6 +106,7 @@ export function createJavaRunCommand(
   return defineCommand({
     name: 'java-run',
     description: 'Java 启动配置组合样本',
+    defaultCommand: 'run',
     commands: {
       run: defineCommand({
         description: '运行应用',

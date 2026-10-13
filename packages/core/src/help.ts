@@ -1,4 +1,5 @@
 import type { FieldRules, ResolvedCommand } from './types.js'
+import { getDefinition } from './command.js'
 
 function describeField(field: FieldRules): string {
   const details: string[] = []
@@ -26,13 +27,23 @@ function optionValueLabel(field: FieldRules): string {
   }
 }
 
+function defaultHelpPath(command: ResolvedCommand, path: readonly string[]): string {
+  const names = [...path]
+  while (command.kind === 'group' && command.defaultCommand !== undefined) {
+    const name = command.defaultCommand
+    names.push(name)
+    command = getDefinition(command.commands[name]!)
+  }
+  return names.join(' ')
+}
+
 /** 根据同一份命令定义生成当前命令路径的帮助 */
 export function renderHelp(command: ResolvedCommand, path: readonly string[]): string {
   const invocation = path.join(' ')
   const lines: string[] = []
 
   if (command.kind === 'group') {
-    lines.push(`用法：${invocation} <命令> [选项]`)
+    lines.push(`用法：${invocation} ${command.defaultCommand !== undefined ? '[命令]' : '<命令>'} [选项]`)
   }
   else {
     const args = command.args.map(field => field.required ? `<${field.name}>` : `[${field.name}]`)
@@ -45,7 +56,9 @@ export function renderHelp(command: ResolvedCommand, path: readonly string[]): s
   if (command.kind === 'group') {
     lines.push('', '子命令：')
     for (const [name, child] of Object.entries(command.commands))
-      lines.push(`  ${name}${child.description ? `  ${child.description}` : ''}`)
+      lines.push(`  ${name}${name === command.defaultCommand ? '（默认）' : ''}${child.description ? `  ${child.description}` : ''}`)
+    if (command.defaultCommand !== undefined)
+      lines.push('', `默认命令可省略；使用 ${defaultHelpPath(command, path)} --help 查看默认命令帮助`)
   }
   else if (command.args.length > 0) {
     lines.push('', '位置参数：')

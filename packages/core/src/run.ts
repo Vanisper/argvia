@@ -132,28 +132,34 @@ export async function run(command: Command, { argv }: RunConfig): Promise<RunRes
   let selected = getDefinition(command)
   const path = [selected.name ?? 'argvia']
   let offset = 0
-  let optionsEnabled = true
 
   while (selected.kind === 'group') {
     const token = argv[offset]
-    if (token === undefined || (optionsEnabled && isHelp(token)))
+    if (token !== undefined && isHelp(token))
       return { kind: 'help', text: renderHelp(selected, path) }
-    if (optionsEnabled && token === '--') {
-      optionsEnabled = false
+
+    if (token !== undefined && !token.startsWith('-')) {
+      const child = Object.hasOwn(selected.commands, token) ? selected.commands[token] : undefined
+      if (!child)
+        return invalidInput(path, 'unknown-command', `「${path.join(' ')}」没有子命令「${token}」`)
+      selected = getDefinition(child)
+      path.push(token)
       offset++
       continue
     }
-    if (optionsEnabled && token.startsWith('-'))
-      return invalidInput(path, 'unknown-option', `未知选项「${token}」`)
-    const child = Object.hasOwn(selected.commands, token) ? selected.commands[token] : undefined
-    if (!child)
-      return invalidInput(path, 'unknown-command', `「${path.join(' ')}」没有子命令「${token}」`)
-    selected = getDefinition(child)
-    path.push(token)
-    offset++
+
+    if (selected.defaultCommand !== undefined) {
+      const name = selected.defaultCommand
+      selected = getDefinition(selected.commands[name]!)
+      path.push(name)
+      continue
+    }
+    if (token === undefined)
+      return { kind: 'help', text: renderHelp(selected, path) }
+    return invalidInput(path, 'unknown-option', `未知选项「${token}」`)
   }
 
-  const input = scanInput(selected, argv.slice(offset), optionsEnabled)
+  const input = scanInput(selected, argv.slice(offset))
   if (input.helpRequested)
     return { kind: 'help', text: renderHelp(selected, path) }
 

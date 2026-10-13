@@ -16,14 +16,23 @@
 
 选项通过 `flag` 提供 `--tool`、`--main`、`--include-tests`、`--java`、`--build-command` 等终端拼写，处理函数仍读取 `buildTool`、`mainClass` 等领域字段。帮助与诊断使用终端拼写，对象字段名不作为隐式别名。
 
+根分组通过 `defaultCommand: 'run'` 提供默认启动。无参数、启动选项或 `--` 开头的输入与显式 `run` 使用同一套配置组合；`plan` 和 `init` 通过首个命令词选择。根 `--help` 展示分组与默认入口，`run --help` 展示启动选项。
+
+```sh
+java-run --tool=maven --jvm-arg=-Xmx1g --arg=first -- --help
+java-run plan --tool=maven --jvm-arg=-Xmx1g --arg=first -- --help
+java-run init --force --arg=first -- second
+```
+
+前两条将 `--help` 作为应用参数，第三条将 `first`、`second` 交给初始化服务保存。未知命令词直接报错；`--force init` 不会重新选择初始化命令。`--cwd plan` 中的 `plan` 作为项目目录值，选定目录之后才读取配置。
+
 ## 后续需求
 
 | 需求 | 所需能力与规则 |
 | --- | --- |
-| 默认启动命令 | 无参数或选项开头时选择 `run`，未知命令词报错，显式命令置于选项之前 |
 | 业务退出与取消 | 保留外部进程退出码及 `130` / `143` |
 
-默认命令按[命令输入契约](input-contract.md)实施，目前尚未接入运行时。领域校验、Java 构建、子进程调度与终端呈现仍由应用组合。
+输入组合按[命令输入契约](input-contract.md)验证。领域校验、Java 构建、子进程调度与终端呈现仍由应用组合。
 
 ## 参考依据
 

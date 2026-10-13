@@ -109,7 +109,12 @@ export function verifyJavaRunTypes(): void {
   }
 
   const app = createJavaRunCommand(services, { cwd: '/project' })
+  const commands = { run: runCommand, plan: planCommand, init: initCommand }
+  const group = defineCommand({ commands, defaultCommand: 'run' })
+  // @ts-expect-error 默认命令必须是已挂载的键
+  defineCommand({ commands, defaultCommand: 'missing' })
   expectTypeOf(app).toEqualTypeOf<Command>()
+  expectTypeOf(group).toEqualTypeOf<Command>()
   expectTypeOf(runCommand).toEqualTypeOf<Command>()
   expectTypeOf(planCommand).toEqualTypeOf<Command>()
   expectTypeOf(initCommand).toEqualTypeOf<Command>()

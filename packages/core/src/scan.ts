@@ -16,9 +16,10 @@ export function isHelp(token: string): boolean {
 }
 
 /** 先确定取值与分隔符的归属，保留帮助优先于输入校验的规则 */
-export function scanInput(command: ResolvedLeaf, argv: readonly string[], optionsEnabled: boolean): ScannedInput {
+export function scanInput(command: ResolvedLeaf, argv: readonly string[]): ScannedInput {
   const tokens: InputToken[] = []
   let helpRequested = false
+  let optionsEnabled = true
 
   for (let index = 0; index < argv.length; index++) {
     const token = argv[index]!

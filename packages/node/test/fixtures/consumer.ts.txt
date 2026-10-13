@@ -1,5 +1,5 @@
 import type { Command, RunResult } from '@argvia/core'
-import { argument, defineCommand, run } from '@argvia/core'
+import { argument, defineCommand, option, run } from '@argvia/core'
 import { runMain } from '@argvia/node'
 
 function expectType<Value>(value: Value): void {
@@ -8,16 +8,24 @@ function expectType<Value>(value: Value): void {
 
 const command: Command = defineCommand({
   args: [argument.string('action', { required: true })],
-  run({ args }) {
+  options: { items: option.string({ flag: '--item', multiple: true }) },
+  passthrough: true,
+  run({ args, options, passthrough }) {
     expectType<string>(args.action)
+    expectType<string[]>(options.items)
+    expectType<readonly string[]>(passthrough)
     // @ts-expect-error 核心包推导的上下文不包含未声明参数
     expectType(args.missing)
     return args.action
   },
 })
 
-expectType<Promise<void>>(runMain(command))
-expectType<Promise<RunResult>>(run(command, { argv: ['ready'] }))
+const app = defineCommand({ commands: { run: command }, defaultCommand: 'run' })
+expectType<Promise<void>>(runMain(app))
+expectType<Promise<RunResult>>(run(app, { argv: ['run', 'ready'] }))
+
+// @ts-expect-error 终端适配与核心包共用命令键约束
+defineCommand({ commands: { run: command }, defaultCommand: 'missing' })
 
 // @ts-expect-error 进程适配器只接受核心包创建的命令
 runMain({ name: 'unregistered' })

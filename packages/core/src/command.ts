@@ -29,7 +29,7 @@ function validateName(name: string, label: string): void {
  * @description 分组与叶子定义互斥；位置参数和选项规则在定义时保存，之后修改原对象不会改变命令
  * @throws {DefinitionError} 参数顺序、命名或命令结构不成立时抛出
  */
-export function defineCommand(definition: GroupDefinition): Command
+export function defineCommand<const Commands extends Readonly<Record<string, Command>>>(definition: GroupDefinition<Commands>): Command
 export function defineCommand<
   const Args extends readonly Argument<string, unknown>[] = readonly [],
   const Options extends Readonly<Record<string, Option<unknown>>> = Record<never, never>,
@@ -55,15 +55,26 @@ export function defineCommand(
       throw new DefinitionError('分组必须提供 commands 对象')
     if (['args', 'options', 'run'].some(key => Object.hasOwn(definition, key)) || 'passthrough' in definition)
       throw new DefinitionError('分组不能同时声明 args、options、run 或 passthrough')
-    for (const [name, command] of Object.entries(definition.commands)) {
+    const commands = Object.freeze({ ...definition.commands })
+    for (const [name, command] of Object.entries(commands)) {
       validateName(name, '子命令名')
       getDefinition(command)
     }
-    resolved = { ...meta, kind: 'group', commands: Object.freeze({ ...definition.commands }) }
+    const defaultCommand = definition.defaultCommand
+    if ('defaultCommand' in definition && (typeof defaultCommand !== 'string' || !Object.hasOwn(commands, defaultCommand)))
+      throw new DefinitionError('defaultCommand 必须是 commands 中已有的子命令键')
+    resolved = {
+      ...meta,
+      kind: 'group',
+      commands,
+      ...(defaultCommand !== undefined ? { defaultCommand } : {}),
+    }
   }
   else {
     if (typeof definition.run !== 'function')
       throw new DefinitionError('叶子命令必须提供 run 处理函数')
+    if ('defaultCommand' in definition)
+      throw new DefinitionError('叶子命令不支持 defaultCommand')
     if ('passthrough' in definition && typeof definition.passthrough !== 'boolean')
       throw new DefinitionError('passthrough 需省略或提供布尔值')
     for (const key of ['args', 'options'] as const) {
