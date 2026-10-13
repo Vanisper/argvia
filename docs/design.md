@@ -1,17 +1,21 @@
 # Argvia 架构与开发边界
 
-Argvia 用声明式命令对象与类型化参数描述器，让一份定义驱动解析、校验、帮助和处理函数上下文。核心实现位于 `packages/argvia`；调用方通过普通对象复用选项，通过闭包接入业务依赖。当前接口见 [API 文档](api.md)。
+Argvia 用声明式命令对象与类型化参数描述器，让一份定义驱动解析、校验、帮助和处理函数上下文。`packages/core` 提供命令核心，`packages/node` 提供 Node.js 进程入口；调用方通过普通对象复用选项，通过闭包接入业务依赖。当前接口见 [API 文档](api.md)。
 
 ## 包与入口
 
-目前采用一个核心包、多入口的布局。定义、类型推导、解析和帮助共同依赖参数规则，在同一个包内维护。终端、日志、交互等配套能力在有独立职责和实际使用者后再拆包。
+每个包拥有独立入口、构建产物和消费验证。定义、类型推导、解析和帮助共同依赖参数规则，由 `@argvia/core` 内的模块协作完成。`@argvia/node` 负责 Node.js 进程适配，通过 core 的公共入口执行命令。
 
-| 入口 | 职责 | 环境依赖 |
+| 包 | 职责 | 依赖 |
 | --- | --- | --- |
-| `argvia` | `defineCommand`、`argument`、`option`、`run`、`DefinitionError` 与公开类型 | 不导入 Node 内建模块 |
-| `argvia/node` | `runMain`，读取进程参数、输出帮助与错误、设置退出码 | `node:process` |
+| `@argvia/core` | `defineCommand`、`argument`、`option`、`run`、`DefinitionError` 与公开类型；生成帮助文本 | 运行时使用 ECMAScript 标准能力 |
+| `@argvia/node` | `runMain`，读取进程参数、输出帮助与错误、设置退出码 | `@argvia/core`、`node:process` |
 
-两个入口复用相同的定义存储和解析模块，因此核心创建的命令可以直接交给进程入口。构建使用 TypeScript 的 NodeNext 模式，输出 ESM 和 `.d.ts`；相对模块引用使用 `.js` 后缀。根工作区与全部包保持 `private`。
+包依赖方向为 `@argvia/node` → `@argvia/core`。Node 包将 core 声明为 `workspace:^` 的 peer dependency，并通过 `workspace:*` 的开发依赖完成本地构建和测试。命令创建与执行使用同一份 core 实例，命令定义存储由 core 管理。
+
+两个包分别使用 TypeScript 的 NodeNext 模式，通过 `tsc` 输出 ESM 和 `.d.ts`。编译保留模块结构，Node 产物保留对 `@argvia/core` 公共入口的引用；包内相对模块引用使用 `.js` 后缀。根工作区与全部包保持 `private`。
+
+`playground/basic` 显式依赖两个包，验证命令定义与进程入口的组合；`playground/java-run` 依赖 core，通过显式 argv 验证业务配置组合。终端、日志、交互等配套能力在有独立职责和实际使用者后再形成包。
 
 配置读取与合并、领域转换、构建、日志和交互由调用方组合。`run` 本身只接收显式 argv；处理函数可以有自己的业务副作用。
 
@@ -42,9 +46,13 @@ const includeTests = cli.includeTests ?? project.includeTests ?? false
 
 ## 开发检查
 
-每个包拥有自己的构建、类型或测试脚本，根脚本通过 Turborepo 调度。依赖关系由 `workspace:*` 声明，消费者检查和测试在核心构建后执行。缓存显式存于当前 worktree 的 `.turbo/cache`；工具不会自动改写根 `AGENTS.md`。
+每个包拥有自己的构建、类型和测试脚本，根脚本通过 Turborepo 调度。`build` 先执行依赖包的构建；`typecheck` 与 `test` 在本包及依赖包的构建完成后执行。缓存存于当前 worktree 的 `.turbo/cache`。
 
-运行时测试通过公共包入口覆盖解析、定义校验、帮助和业务失败。类型验证检查推导及编译期负例。额外的隔离消费者只得到 `package.json` 与 `dist`，用普通 Node 执行，并在没有环境类型的 NodeNext 与 Bundler 配置下检查声明，避免源码映射掩盖产物问题。
+`pnpm build` 构建全部包。按需构建 core 或 Node 包时，分别运行 `pnpm exec turbo run build --filter=@argvia/core` 或 `pnpm exec turbo run build --filter=@argvia/node`；Turborepo 按包依赖图完成所需构建。
+
+运行时测试通过公共包入口覆盖解析、定义校验、帮助和业务失败。类型验证检查推导及编译期负例。隔离消费者只获得待测包的 `package.json` 与 `dist`，由普通 Node 执行，并在没有环境类型的 NodeNext 与 Bundler 配置下检查声明。
+
+core 的隔离消费者验证独立导入、命令执行与类型声明，检查完整依赖图不加载 Node 内建模块。跨包消费者同时装入 core 和 Node 产物，验证 core 创建的命令可以交给 `runMain`，并检查两个公开入口的类型声明。
 
 ## 后续实现
 

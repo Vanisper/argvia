@@ -1,6 +1,6 @@
 # java-run 配置组合场景
 
-[`playground/java-run`](../playground/java-run/) 用真实 Java 启动工具的需求验证命令定义与配置覆盖。样本通过内存配置和业务替身运行，配置读取、启动、计划与初始化由调用方提供。
+[`playground/java-run`](../playground/java-run/) 用真实 Java 启动工具的需求验证命令定义与配置覆盖。样本依赖 `@argvia/core`，通过显式 argv、内存配置和业务替身运行；配置读取、启动、计划与初始化由调用方提供。
 
 ## 当前覆盖
 

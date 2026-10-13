@@ -1,6 +1,6 @@
 # 命令定义 API
 
-当前包为 ESM，尚未发布。`argvia` 导出显式 argv 核心 API，`argvia/node` 单独导出进程入口。
+`@argvia/core` 与 `@argvia/node` 均为 ESM 包，并提供类型声明，目前保持 `private`。`@argvia/core` 导出命令定义、显式 argv 执行与公开类型；`@argvia/node` 导出 `runMain`。
 
 ## 参数与选项
 
@@ -23,7 +23,7 @@
 叶子命令提供 `run`，可以声明 `args` 和 `options`。分组命令提供 `commands`，不能同时声明处理函数或参数；子命令名由 `commands` 的对象键决定。根 `name` 用于帮助路径，省略时为 `argvia`。
 
 ```ts
-import { defineCommand, option, run } from 'argvia'
+import { defineCommand, option, run } from '@argvia/core'
 
 const sharedOptions = {
   mode: option.enum(['dev', 'prod']),
@@ -70,7 +70,7 @@ const result = await run(app, { argv: ['inspect', '--mode=prod'] })
 
 处理函数的异常或异步拒绝原样传播，不转成输入错误。业务返回值暂不进行泛型推导。
 
-`runMain(command)` 从 `argvia/node` 导入，读取 `process.argv.slice(2)` 并设置 `process.exitCode`：
+`runMain(command)` 从 `@argvia/node` 导入，接收 `@argvia/core` 创建的命令，读取 `process.argv.slice(2)` 并设置 `process.exitCode`：
 
 | 结果 | 输出 | 退出码 |
 | --- | --- | --- |
