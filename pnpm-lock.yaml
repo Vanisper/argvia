@@ -102,10 +102,16 @@ importers:
       '@argvia/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@argvia/node':
+        specifier: workspace:*
+        version: link:../../packages/node
     devDependencies:
       '@types/node':
         specifier: catalog:dev
         version: 22.20.5
+      tsx:
+        specifier: catalog:dev
+        version: 4.23.15
       typescript:
         specifier: catalog:dev
         version: 5.9.3

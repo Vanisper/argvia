@@ -4,13 +4,18 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "dev": "tsx src/main.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
-  "dependencies": { "@argvia/core": "workspace:*" },
+  "dependencies": {
+    "@argvia/core": "workspace:*",
+    "@argvia/node": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "catalog:dev",
+    "tsx": "catalog:dev",
     "typescript": "catalog:dev",
     "vitest": "catalog:dev"
   }
