@@ -4,9 +4,11 @@ import type {
   FieldRules,
   Option,
   OptionalConfig,
+  OptionConfig,
   RequiredConfig,
   ValueConfig,
 } from './types.js'
+import { COMMAND_IDENTIFIER } from './constants.js'
 import { DefinitionError } from './errors.js'
 
 const descriptors = new WeakSet<object>()
@@ -26,7 +28,7 @@ function createField(
   kind: FieldRules['kind'],
   config: ValueConfig = {},
   choices?: readonly string[],
-): Option<unknown> {
+): FieldRules {
   const hasDefault = Object.hasOwn(config, 'default')
   if (config.required && hasDefault)
     throw new DefinitionError('required 与 default 不能同时使用')
@@ -51,13 +53,27 @@ function createField(
       throw new DefinitionError(`无效的 ${kind} 默认值`)
   }
 
-  return register({
+  return {
     kind,
     required: config.required === true,
     ...(config.description !== undefined ? { description: config.description } : {}),
     ...(hasDefault ? { default: config.default as string | number | boolean } : {}),
     ...(choices ? { choices: Object.freeze([...choices]) } : {}),
-  })
+  }
+}
+
+function createOption(
+  kind: FieldRules['kind'],
+  config: ValueConfig & OptionConfig = {},
+  choices?: readonly string[],
+): Option<unknown> {
+  const hasFlag = 'flag' in config
+  const flag = config.flag
+  if (hasFlag && (typeof flag !== 'string' || flag.trim() !== flag || !flag.startsWith('--') || !COMMAND_IDENTIFIER.test(flag.slice(2))))
+    throw new DefinitionError('flag 必须以 -- 和字母开头，且只包含字母、数字、下划线或连字符')
+  if (flag === '--help')
+    throw new DefinitionError('--help 是保留选项名')
+  return register({ ...createField(kind, config, choices), ...(flag !== undefined ? { flag } : {}) })
 }
 
 /**
@@ -65,11 +81,11 @@ function createField(
  *
  * @description 必填或提供默认值时得到 string，否则得到 string | undefined
  */
-function stringOption(config: RequiredConfig): Option<string>
-function stringOption(config: DefaultConfig<string>): Option<string>
-function stringOption(config?: OptionalConfig): Option<string | undefined>
-function stringOption(config?: ValueConfig): Option<unknown> {
-  return createField('string', config)
+function stringOption(config: RequiredConfig & OptionConfig): Option<string>
+function stringOption(config: DefaultConfig<string> & OptionConfig): Option<string>
+function stringOption(config?: OptionalConfig & OptionConfig): Option<string | undefined>
+function stringOption(config?: ValueConfig & OptionConfig): Option<unknown> {
+  return createOption('string', config)
 }
 
 /**
@@ -77,11 +93,11 @@ function stringOption(config?: ValueConfig): Option<unknown> {
  *
  * @description 输入按有限十进制数转换，默认值不会收窄成字面量类型
  */
-function numberOption(config: RequiredConfig): Option<number>
-function numberOption(config: DefaultConfig<number>): Option<number>
-function numberOption(config?: OptionalConfig): Option<number | undefined>
-function numberOption(config?: ValueConfig): Option<unknown> {
-  return createField('number', config)
+function numberOption(config: RequiredConfig & OptionConfig): Option<number>
+function numberOption(config: DefaultConfig<number> & OptionConfig): Option<number>
+function numberOption(config?: OptionalConfig & OptionConfig): Option<number | undefined>
+function numberOption(config?: ValueConfig & OptionConfig): Option<unknown> {
+  return createOption('number', config)
 }
 
 /**
@@ -89,10 +105,10 @@ function numberOption(config?: ValueConfig): Option<unknown> {
  *
  * @description 不接受取值；显式输入为 true，省略时采用默认值或得到 undefined
  */
-function booleanOption(config: DefaultConfig<boolean>): Option<boolean>
-function booleanOption(config?: OptionalConfig): Option<boolean | undefined>
-function booleanOption(config?: ValueConfig): Option<unknown> {
-  return createField('boolean', config)
+function booleanOption(config: DefaultConfig<boolean> & OptionConfig): Option<boolean>
+function booleanOption(config?: OptionalConfig & OptionConfig): Option<boolean | undefined>
+function booleanOption(config?: ValueConfig & OptionConfig): Option<unknown> {
+  return createOption('boolean', config)
 }
 
 /**
@@ -100,17 +116,19 @@ function booleanOption(config?: ValueConfig): Option<unknown> {
  *
  * @description 候选集合决定取值类型，默认值必须属于该集合
  */
-function enumOption<const Choices extends readonly string[]>(choices: Choices, config: RequiredConfig): Option<Choices[number]>
-function enumOption<const Choices extends readonly string[]>(choices: Choices, config: DefaultConfig<NoInfer<Choices[number]>>): Option<Choices[number]>
-function enumOption<const Choices extends readonly string[]>(choices: Choices, config?: OptionalConfig): Option<Choices[number] | undefined>
-function enumOption(choices: readonly string[], config?: ValueConfig): Option<unknown> {
-  return createField('enum', config, choices)
+function enumOption<const Choices extends readonly string[]>(choices: Choices, config: RequiredConfig & OptionConfig): Option<Choices[number]>
+function enumOption<const Choices extends readonly string[]>(choices: Choices, config: DefaultConfig<NoInfer<Choices[number]>> & OptionConfig): Option<Choices[number]>
+function enumOption<const Choices extends readonly string[]>(choices: Choices, config?: OptionalConfig & OptionConfig): Option<Choices[number] | undefined>
+function enumOption(choices: readonly string[], config?: ValueConfig & OptionConfig): Option<unknown> {
+  return createOption('enum', config, choices)
 }
 
 /** 定义字符串位置参数，数组顺序决定匹配顺序 */
-function stringArgument<const Name extends string>(name: Name, config: RequiredConfig): Argument<Name, string>
-function stringArgument<const Name extends string>(name: Name, config?: OptionalConfig): Argument<Name, string | undefined>
-function stringArgument(name: string, config?: RequiredConfig | OptionalConfig): Argument<string, unknown> {
+function stringArgument<const Name extends string>(name: Name, config: RequiredConfig & { readonly flag?: never }): Argument<Name, string>
+function stringArgument<const Name extends string>(name: Name, config?: OptionalConfig & { readonly flag?: never }): Argument<Name, string | undefined>
+function stringArgument(name: string, config: (RequiredConfig | OptionalConfig) & { readonly flag?: never } = {}): Argument<string, unknown> {
+  if ('flag' in config)
+    throw new DefinitionError('位置参数不支持 flag')
   return register({ ...createField('string', config), name })
 }
 

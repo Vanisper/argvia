@@ -34,7 +34,7 @@ const command: Command = defineCommand({
     includeTests: option.boolean(optional),
     force: option.boolean(defaultFalse),
     retries: option.number(),
-    target: option.string(required),
+    target: option.string({ ...required, flag: '--entry' }),
   },
   run({ options }) {
     expectType<boolean | undefined>(options.includeTests)
@@ -46,6 +46,8 @@ const command: Command = defineCommand({
     expectType<boolean>(options.includeTests)
     // @ts-expect-error 未声明的选项不可访问
     expectType(options.missing)
+    // @ts-expect-error 终端拼写不会增加结果字段
+    expectType(options.entry)
 
     const resolved: FinalConfig = {
       includeTests: options.includeTests ?? config.includeTests ?? false,
@@ -59,7 +61,7 @@ const command: Command = defineCommand({
   },
 })
 
-const input: RunConfig = { argv: ['--target=application'] }
+const input: RunConfig = { argv: ['--entry=application'] }
 expectType<Promise<RunResult>>(run(command, input))
 
 // @ts-expect-error 布尔默认值不能使用字符串

@@ -64,13 +64,14 @@ describe('java-run 标量配置组合', () => {
     const argv = [
       action,
       '--cwd=/other-project',
-      '--buildTool=gradle',
+      '--tool=gradle',
       '--build=none',
       '--module=new-module',
-      '--mainClass=example.NewMain',
-      '--includeTests',
-      '--javaCommand=/tools/java',
-      '--buildCommand=/tools/gradle',
+      '--main',
+      'example.NewMain',
+      '--include-tests',
+      '--java=/tools/java',
+      '--build-command=/tools/gradle',
     ]
 
     expect(await run(command, { argv })).toEqual({ kind: 'executed', value: request })
@@ -110,7 +111,7 @@ describe('java-run 标量配置组合', () => {
   it('显式请求 auto 时覆盖保存的构建工具与策略', async () => {
     const { command } = createApplication({ buildTool: 'maven', build: 'none' })
 
-    expect(await run(command, { argv: ['run', '--buildTool=auto', '--build=auto'] })).toMatchObject({
+    expect(await run(command, { argv: ['run', '--tool=auto', '--build=auto'] })).toMatchObject({
       kind: 'executed',
       value: { buildTool: 'auto', build: 'auto' },
     })
@@ -119,7 +120,7 @@ describe('java-run 标量配置组合', () => {
   it.each([
     { argv: ['init'], force: false, includeTests: false },
     { argv: ['init', '--force'], force: true, includeTests: false },
-    { argv: ['init', '--includeTests'], force: false, includeTests: true },
+    { argv: ['init', '--include-tests'], force: false, includeTests: true },
   ])('init 跳过旧配置，局部 force 得到显式默认值：$argv', async ({ argv, force, includeTests }) => {
     const { command, services } = createApplication({
       buildTool: 'gradle',
@@ -154,7 +155,10 @@ describe('java-run 标量配置组合', () => {
     expect(result.kind).toBe('help')
     if (result.kind === 'help') {
       expect(result.text).toContain(`java-run ${action}`)
-      expect(result.text).toContain('--includeTests')
+      for (const flag of ['--tool', '--main', '--include-tests', '--java', '--build-command'])
+        expect(result.text).toContain(flag)
+      for (const key of ['--buildTool', '--mainClass', '--includeTests', '--javaCommand', '--buildCommand'])
+        expect(result.text).not.toContain(key)
       if (action === 'init')
         expect(result.text).toContain('--force')
       else
@@ -165,18 +169,38 @@ describe('java-run 标量配置组合', () => {
   })
 
   it.each([
-    { argv: ['run', '--force'], code: 'unknown-option' },
-    { argv: ['plan', '--force'], code: 'unknown-option' },
-    { argv: ['run', '--buildTool=unknown'], code: 'invalid-value' },
-    { argv: ['plan', '--build'], code: 'missing-value' },
-    { argv: ['init', '--force', '--force'], code: 'duplicate-option' },
-  ])('输入错误发生在配置读取和业务执行前：$argv', async ({ argv, code }) => {
+    { argv: ['run', '--force'], code: 'unknown-option', flag: '--force' },
+    { argv: ['plan', '--force'], code: 'unknown-option', flag: '--force' },
+    { argv: ['run', '--tool=unknown'], code: 'invalid-value', flag: '--tool' },
+    { argv: ['plan', '--build'], code: 'missing-value', flag: '--build' },
+    { argv: ['init', '--force', '--force'], code: 'duplicate-option', flag: '--force' },
+    { argv: ['init', '--main'], code: 'missing-value', flag: '--main' },
+    { argv: ['run', '--java=java', '--java=other'], code: 'duplicate-option', flag: '--java' },
+  ])('输入错误使用 CLI 拼写，发生在配置读取和业务执行前：$argv', async ({ argv, code, flag }) => {
     const { command, services } = createApplication()
 
     expect(await run(command, { argv })).toMatchObject({
       kind: 'invalid-input',
-      diagnostic: { code, commandPath: ['java-run', argv[0]] },
+      diagnostic: { code, commandPath: ['java-run', argv[0]], message: expect.stringContaining(flag) },
     })
+    for (const service of Object.values(services))
+      expect(service).not.toHaveBeenCalled()
+  })
+
+  it.each(['run', 'plan', 'init'])('对象字段拼写不作为 CLI 别名：%s', async (action) => {
+    const { command, services } = createApplication()
+    for (const input of [
+      '--buildTool=maven',
+      '--mainClass=example.Main',
+      '--includeTests',
+      '--javaCommand=java',
+      '--buildCommand=mvn',
+    ]) {
+      expect(await run(command, { argv: [action, input] })).toMatchObject({
+        kind: 'invalid-input',
+        diagnostic: { code: 'unknown-option', commandPath: ['java-run', action] },
+      })
+    }
     for (const service of Object.values(services))
       expect(service).not.toHaveBeenCalled()
   })

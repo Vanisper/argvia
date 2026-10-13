@@ -17,6 +17,7 @@ export type {
   LeafDefinition,
   Option,
   OptionalConfig,
+  OptionConfig,
   RequiredConfig,
   RunConfig,
   RunResult,

@@ -16,17 +16,30 @@ export interface FieldRules {
 
 /** 保留解析值类型的选项描述器 */
 export interface Option<Value> extends FieldRules {
+  /** 显式长选项拼写，省略时由命令定义中的对象键决定 */
+  readonly flag?: `--${string}`
   readonly [fieldValue]?: Value
 }
 
 /** 按名称写入处理函数上下文的位置参数描述器 */
 export interface Argument<Name extends string, Value> extends Option<Value> {
   readonly name: Name
+  readonly flag?: never
 }
 
 /** 参数的帮助说明 */
 export interface FieldConfig {
   readonly description?: string
+}
+
+/** 选项的帮助说明与终端拼写 */
+export interface OptionConfig extends FieldConfig {
+  /**
+   * 替换对象键对应的默认长选项拼写
+   *
+   * @description 必须以 -- 和字母开头，后续仅含字母、数字、下划线或连字符；结果字段名仍由对象键决定
+   */
+  readonly flag?: `--${string}`
 }
 
 /** 要求调用者显式输入的字段规则 */
@@ -138,8 +151,14 @@ export interface RuntimeContext {
 export interface ResolvedLeaf extends CommandMeta {
   readonly kind: 'leaf'
   readonly args: readonly Argument<string, unknown>[]
-  readonly options: Readonly<Record<string, Option<unknown>>>
+  readonly options: Readonly<Record<string, ResolvedOption>>
   readonly invoke: (context: RuntimeContext) => unknown
+}
+
+export interface ResolvedOption {
+  readonly name: string
+  readonly flag: string
+  readonly field: Option<unknown>
 }
 
 export interface ResolvedGroup extends CommandMeta {
@@ -153,8 +172,3 @@ export type ValueConfig = RequiredConfig | DefaultConfig<string | number | boole
 export type InputFailure = Extract<RunResult, { kind: 'invalid-input' }>
 export type ParsedInput = { readonly kind: 'parsed', readonly context: RuntimeContext } | InputFailure
 export type ParsedValue = { readonly ok: true, readonly value: unknown } | { readonly ok: false, readonly message: string }
-
-export interface SplitOption {
-  name: string
-  value: string | undefined
-}

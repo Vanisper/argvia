@@ -4,13 +4,13 @@ import { defineCommand, option } from '@argvia/core'
 /** run、plan 和 init 共同接受的标量选项 */
 export const launchOptions = {
   cwd: option.string({ description: '项目目录' }),
-  buildTool: option.enum(['auto', 'maven', 'gradle'], { description: '构建工具' }),
+  buildTool: option.enum(['auto', 'maven', 'gradle'], { flag: '--tool', description: '构建工具' }),
   build: option.enum(['auto', 'none'], { description: '构建策略' }),
   module: option.string({ description: '启动模块' }),
-  mainClass: option.string({ description: 'Java 主类' }),
-  includeTests: option.boolean({ description: '包含测试产物' }),
-  javaCommand: option.string({ description: 'Java 工具路径' }),
-  buildCommand: option.string({ description: '构建工具路径' }),
+  mainClass: option.string({ flag: '--main', description: 'Java 主类' }),
+  includeTests: option.boolean({ flag: '--include-tests', description: '包含测试产物' }),
+  javaCommand: option.string({ flag: '--java', description: 'Java 工具路径' }),
+  buildCommand: option.string({ flag: '--build-command', description: '构建工具路径' }),
 }
 
 /** init 的标量选项和局部覆盖开关 */

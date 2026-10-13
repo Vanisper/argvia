@@ -57,9 +57,9 @@ export function renderHelp(command: ResolvedCommand, path: readonly string[]): s
 
   lines.push('', '选项：')
   if (command.kind === 'leaf') {
-    for (const [name, field] of Object.entries(command.options)) {
+    for (const { flag, field } of Object.values(command.options)) {
       const details = describeField(field)
-      lines.push(`  --${name}${optionValueLabel(field)}${details ? `  ${details}` : ''}`)
+      lines.push(`  ${flag}${optionValueLabel(field)}${details ? `  ${details}` : ''}`)
     }
   }
   lines.push('  -h, --help  显示帮助')

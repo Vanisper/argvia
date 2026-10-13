@@ -16,6 +16,8 @@
 
 `description` 用于帮助说明。`required: true` 要求显式输入，与 `default` 互斥。默认值在构造描述器时校验；数值默认值不会收窄成字面量类型，枚举默认值必须属于集合，并保留整个联合类型。
 
+选项支持 `flag` 指定唯一长拼写，例如 `mainClass: option.string({ flag: '--main' })` 接受 `--main=value`，结果仍为 `options.mainClass`。省略 `flag` 时使用 `--` 加对象键；显式拼写替换默认拼写，不添加别名。`flag` 不适用于位置参数。
+
 布尔开关不接受取值，显式输入得到 `true`。`option.boolean()` 省略时得到 `undefined`；`option.boolean({ default: false })` 省略时得到 `false`。当前不支持布尔否定或显式传入 `false`。
 
 ## 命令结构
@@ -41,7 +43,7 @@ const app = defineCommand({ name: 'tool', commands: { inspect } })
 const result = await run(app, { argv: ['inspect', '--mode=prod'] })
 ```
 
-选项与子命令名以字母开头，只包含字母、数字、下划线和连字符。选项键直接决定长选项拼写，`help` 保留给内置帮助。组内选项不向子命令继承，共享选项通过对象组合复用。
+字段键与子命令名以字母开头，只包含字母、数字、下划线和连字符。显式 `flag` 由 `--` 加同样规则的名称组成。同一命令的有效长拼写不能重复，`--help` 保留给内置帮助；结果字段键可以通过映射与终端名称分离。组内选项不向子命令继承，共享选项通过对象组合复用。
 
 定义不合法时同步抛出 `DefinitionError`。显式 `args: undefined` 或 `options: undefined` 也会被拒绝，请省略字段或提供有效定义。
 
@@ -56,7 +58,7 @@ const result = await run(app, { argv: ['inspect', '--mode=prod'] })
 - `-h` 和 `--help` 在合法命令路径上优先于输入校验，跳过必填检查并且不调用处理函数；未知子命令仍返回错误
 - 字符串选项消费紧接的取值，包括 `--help`；`--token --help` 与 `--token=--help` 都将标记作为字符串值
 
-当前不提供短选项别名、字段拼写映射、重复值集合、可变长位置参数、独立透传上下文或默认子命令。
+当前不提供短选项别名、重复值集合、可变长位置参数、独立透传上下文或默认子命令。
 
 ## 执行结果与进程入口
 

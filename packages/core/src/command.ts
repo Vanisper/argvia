@@ -5,6 +5,7 @@ import type {
   LeafDefinition,
   Option,
   ResolvedCommand,
+  ResolvedOption,
   RuntimeContext,
 } from './types.js'
 import { COMMAND_IDENTIFIER } from './constants.js'
@@ -62,6 +63,7 @@ export function defineCommand(
     const args = definition.args ?? []
     const options = definition.options ?? {}
     const names = new Set<string>()
+    const resolvedOptions = new Map<string, ResolvedOption>()
     let optionalSeen = false
     for (const field of args) {
       assertDescriptor(field)
@@ -76,8 +78,12 @@ export function defineCommand(
     for (const [name, field] of Object.entries(options)) {
       assertDescriptor(field)
       validateName(name, '选项名')
-      if (name === 'help')
-        throw new DefinitionError('help 是保留选项名')
+      const flag = field.flag ?? `--${name}`
+      if (flag === '--help')
+        throw new DefinitionError('--help 是保留选项名')
+      if (resolvedOptions.has(flag))
+        throw new DefinitionError(`重复的选项拼写「${flag}」`)
+      resolvedOptions.set(flag, Object.freeze({ name, flag, field }))
     }
 
     // 解析和校验保证该边界的值符合描述器；用户处理函数保留更精确的输入类型
@@ -86,7 +92,7 @@ export function defineCommand(
       ...meta,
       kind: 'leaf',
       args: Object.freeze([...args]),
-      options: Object.freeze({ ...options }),
+      options: Object.freeze(Object.fromEntries(resolvedOptions)),
       invoke,
     }
   }

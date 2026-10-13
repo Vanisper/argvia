@@ -11,7 +11,7 @@ async function main() {
   assert.equal('runMain' in core, false)
   const command = core.defineCommand({
     options: {
-      verbose: core.option.boolean(),
+      verbose: core.option.boolean({ flag: '--verbose-output' }),
       force: core.option.boolean({ default: false }),
     },
     run: context => context.options,
@@ -20,13 +20,13 @@ async function main() {
     kind: 'executed',
     value: { verbose: undefined, force: false },
   })
-  assert.deepEqual(await core.run(command, { argv: ['--verbose'] }), {
+  assert.deepEqual(await core.run(command, { argv: ['--verbose-output'] }), {
     kind: 'executed',
     value: { verbose: true, force: false },
   })
   const help = await core.run(command, { argv: ['--help'] })
   assert.equal(help.kind, 'help')
-  assert.match(help.text, /--verbose/u)
+  assert.match(help.text, /--verbose-output/u)
   assert.match(help.text, /--force/u)
   await assert.rejects(import('@argvia/core/dist/index.js'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
   await assert.rejects(import('@argvia/node'), { code: 'ERR_MODULE_NOT_FOUND' })

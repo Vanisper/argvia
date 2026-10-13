@@ -14,6 +14,19 @@ export function verifyJavaRunTypes(): void {
       expectTypeOf(options.build).toEqualTypeOf<'auto' | 'none' | undefined>()
       expectTypeOf(options.mainClass).toEqualTypeOf<string | undefined>()
       expectTypeOf(options.includeTests).toEqualTypeOf<boolean | undefined>()
+      expectTypeOf(options.javaCommand).toEqualTypeOf<string | undefined>()
+      expectTypeOf(options.buildCommand).toEqualTypeOf<string | undefined>()
+
+      // @ts-expect-error CLI 拼写不改变结果字段名
+      expectTypeOf(options.tool)
+      // @ts-expect-error CLI 拼写不改变结果字段名
+      expectTypeOf(options.main)
+      // @ts-expect-error CLI 拼写不改变结果字段名
+      expectTypeOf(options['include-tests'])
+      // @ts-expect-error CLI 拼写不改变结果字段名
+      expectTypeOf(options.java)
+      // @ts-expect-error CLI 拼写不改变结果字段名
+      expectTypeOf(options['build-command'])
 
       // @ts-expect-error force 只属于 init
       expectTypeOf(options.force)
