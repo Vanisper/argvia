@@ -60,6 +60,8 @@ pnpm exec turbo run dev --filter=@argvia/playground-java-run -- init --force --a
 
 `options.ts` 中的一份描述同时提供取值类型、输入校验和帮助说明。抽出的 `LaunchInput` 供配置合并函数使用，仍由描述器推导。项目配置与最终业务请求则在 `config.ts` 中显式声明，表达配置允许缺项、业务请求已经补齐默认值的区别。
 
+`valueName` 让帮助显示 `--cwd <目录>`、`--main <类全名>` 和 `--java <路径>`，字段名与解析值保持原样。枚举候选值和重复参数说明继续由描述器生成；布尔开关仍显示 `[=true|false]`。
+
 `app.ts` 通过 `JavaRunServices` 接收配置读取和业务执行函数。处理函数拿到已校验的输入后完成配置组合，再调用对应服务。`main.ts` 接入当前进程，测试则注入业务替身；两者使用相同的命令定义。启动服务返回数字退出码，`run` 处理函数通过 `exit(await services.launch(request))` 显式传给执行器。计划与初始化可以继续返回普通业务数据；它们的数字返回值不会自动成为退出码。
 
 ## 领域校验与业务状态

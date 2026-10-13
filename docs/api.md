@@ -18,7 +18,9 @@
 
 选项支持 `flag` 指定唯一长拼写，例如 `mainClass: option.string({ flag: '--main' })` 接受 `--main=value`，结果仍为 `options.mainClass`。省略 `flag` 时使用 `--` 加对象键；显式拼写替换默认拼写，不添加别名。`flag` 不适用于位置参数。
 
-`option.string({ multiple: true })` 得到 `string[]`：每次出现消费一个字符串，按该字段输入顺序收集，省略时得到独立的空数组。支持 `flag` 与 `description`，不接受 `required`、`default` 或显式 `undefined`；其他值类型与位置参数不支持重复集合。单值选项仍拒绝重复输入。集合保留普通字符串的空值、空白和取值规则，不拆分逗号或空白。
+取值选项与字符串位置参数支持 `valueName` 指定静态帮助标签，例如 `option.string({ flag: '--main', valueName: '类全名' })` 显示 `--main <类全名>`。位置参数用该标签展示用法及参数列表，处理函数仍按原字段名取值。标签必须是非空白单行字符串，不含尖括号或首尾空白；非法值在构造时抛出 `DefinitionError`。布尔开关不接受标签，其他输入类型、校验与默认值均保持原规则。可用 `ValueNameConfig` 标注共享标签配置，完整规则见[帮助与诊断契约](help-contract.md)。
+
+`option.string({ multiple: true })` 得到 `string[]`：每次出现消费一个字符串，按该字段输入顺序收集，省略时得到独立的空数组。支持 `flag`、`description` 与 `valueName`，不接受 `required`、`default` 或显式 `undefined`；其他值类型与位置参数不支持重复集合。单值选项仍拒绝重复输入。集合保留普通字符串的空值、空白和取值规则，不拆分逗号或空白。
 
 布尔选项的裸开关得到 `true`，也可以通过等号显式传入精确的小写 `true` 或 `false`，例如 `--include-tests=false`。布尔选项不消费下一项：`--include-tests false` 中的 `false` 仍作为位置参数处理。其他大小写、数值缩写、空值及带空白的值均被拒绝；裸开关与等号形式的任意重复组合都返回重复选项错误。
 

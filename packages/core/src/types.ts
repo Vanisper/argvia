@@ -7,6 +7,8 @@ export interface FieldRules {
   /** 决定输入转换与帮助中的取值提示 */
   readonly kind: 'string' | 'number' | 'boolean' | 'enum'
   readonly description?: string
+  /** 帮助中显示的值标签，省略时使用类型提示或位置参数名 */
+  readonly valueName?: string
   /** 是否必须显式提供输入 */
   readonly required: boolean
   /** 输入省略时使用的值 */
@@ -46,8 +48,14 @@ export interface OptionConfig extends FieldConfig {
   readonly flag?: `--${string}`
 }
 
+/** 指定帮助中值占位符的标签 */
+export interface ValueNameConfig {
+  /** 非空白单行文本，不包含尖括号或首尾空白 */
+  readonly valueName?: string
+}
+
 /** 收集重复字符串的选项规则，不接受 required 或 default */
-export interface MultipleConfig extends OptionConfig {
+export interface MultipleConfig extends OptionConfig, ValueNameConfig {
   /** 每次出现收集一个字符串，每次执行使用独立数组 */
   readonly multiple: true
   readonly required?: never

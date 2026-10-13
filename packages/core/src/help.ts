@@ -15,6 +15,8 @@ function describeField(field: FieldRules): string {
 }
 
 function optionValueLabel(field: FieldRules): string {
+  if (field.valueName !== undefined)
+    return ` <${field.valueName}>`
   switch (field.kind) {
     case 'string':
       return ' <字符串>'
@@ -46,7 +48,7 @@ export function renderHelp(command: ResolvedCommand, path: readonly string[]): s
     lines.push(`用法：${invocation} ${command.defaultCommand !== undefined ? '[命令]' : '<命令>'} [选项]`)
   }
   else {
-    const args = command.args.map(field => field.required ? `<${field.name}>` : `[${field.name}]`)
+    const args = command.args.map(field => field.required ? `<${field.valueName ?? field.name}>` : `[${field.valueName ?? field.name}]`)
     lines.push(`用法：${[invocation, ...args, '[选项]', ...(command.passthrough ? ['[-- 原始参数...]'] : [])].join(' ')}`)
   }
 
@@ -64,7 +66,7 @@ export function renderHelp(command: ResolvedCommand, path: readonly string[]): s
     lines.push('', '位置参数：')
     for (const field of command.args) {
       const details = describeField(field)
-      lines.push(`  ${field.name}${details ? `  ${details}` : ''}`)
+      lines.push(`  ${field.valueName ?? field.name}${details ? `  ${details}` : ''}`)
     }
   }
 

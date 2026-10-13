@@ -13,7 +13,7 @@ async function main() {
     options: {
       verbose: core.option.boolean({ flag: '--verbose-output' }),
       force: core.option.boolean({ default: false }),
-      items: core.option.string({ flag: '--item', multiple: true }),
+      items: core.option.string({ flag: '--item', multiple: true, valueName: '参数' }),
     },
     run: context => context.options,
   })
@@ -33,6 +33,7 @@ async function main() {
   assert.equal(help.kind, 'help')
   assert.match(help.text, /--verbose-output\[=true\|false\]/u)
   assert.match(help.text, /--force/u)
+  assert.match(help.text, /--item <参数>/u)
   const leaf = core.defineCommand({
     options: { items: core.option.string({ flag: '--item', multiple: true }) },
     passthrough: true,

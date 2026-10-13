@@ -25,4 +25,5 @@ export type {
   RequiredConfig,
   RunConfig,
   RunResult,
+  ValueNameConfig,
 } from './types.js'

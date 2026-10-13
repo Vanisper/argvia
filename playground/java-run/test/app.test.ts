@@ -186,6 +186,8 @@ describe('java-run 配置组合', () => {
     expect(result.kind).toBe('help')
     if (result.kind === 'help') {
       expect(result.text).toContain(`java-run ${action}`)
+      for (const label of ['--cwd <目录>', '--main <类全名>', '--tool <工具>', '--build <策略>', '--jvm-arg <参数>', '--java <路径>'])
+        expect(result.text).toContain(label)
       for (const flag of ['--tool', '--main', '--include-tests', '--java', '--build-command', '--jvm-arg', '--arg', '--build-arg'])
         expect(result.text).toContain(flag)
       for (const key of ['--buildTool', '--mainClass', '--includeTests', '--javaCommand', '--buildCommand'])

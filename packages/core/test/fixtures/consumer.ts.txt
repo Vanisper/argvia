@@ -7,6 +7,7 @@ import type {
   RequiredConfig,
   RunConfig,
   RunResult,
+  ValueNameConfig,
 } from '@argvia/core'
 import { CommandError, defineCommand, exit, option, run } from '@argvia/core'
 // @ts-expect-error 核心入口不导出进程适配器
@@ -29,6 +30,7 @@ interface FinalConfig {
 const optional: OptionalConfig = { description: '配置合并时保留缺省状态' }
 const defaultFalse: DefaultConfig<boolean> = { default: false }
 const required: RequiredConfig = { required: true }
+const valueLabel: ValueNameConfig = { valueName: '次数' }
 const config: ProjectConfig = { includeTests: true, retries: 4 }
 
 const command: Command = defineCommand({
@@ -36,9 +38,9 @@ const command: Command = defineCommand({
   options: {
     includeTests: option.boolean(optional),
     force: option.boolean(defaultFalse),
-    retries: option.number(),
-    target: option.string({ ...required, flag: '--entry' }),
-    items: option.string({ flag: '--item', multiple: true }),
+    retries: option.number(valueLabel),
+    target: option.string({ ...required, flag: '--entry', valueName: '目标' }),
+    items: option.string({ flag: '--item', multiple: true, valueName: '参数' }),
   },
   run({ options, passthrough }) {
     expectType<readonly string[]>(passthrough)
@@ -70,6 +72,8 @@ const command: Command = defineCommand({
     return resolved
   },
 })
+// @ts-expect-error 布尔开关不接受值标签
+option.boolean({ valueName: '布尔值' })
 
 const input: RunConfig = { argv: ['--entry=application'] }
 const app = defineCommand({ commands: { run: command }, defaultCommand: 'run' })
