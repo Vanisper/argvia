@@ -70,9 +70,10 @@ function parseInput(
     suppliedOptions.add(name)
 
     if (field.kind === 'boolean') {
-      if (token.value !== undefined)
-        return invalidInput(path, 'invalid-value', `开关选项「${flag}」不接受取值`)
-      options.set(name, true)
+      const parsed = parseValue(field, token.value ?? 'true')
+      if (!parsed.ok)
+        return invalidInput(path, 'invalid-value', `选项「${flag}」${parsed.message}`)
+      options.set(name, parsed.value)
       continue
     }
 

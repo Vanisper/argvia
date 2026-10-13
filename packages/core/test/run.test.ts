@@ -180,8 +180,6 @@ describe('命令执行公共接口', () => {
     { argv: ['deploy', 'app.ts', '--no-verbose'], code: 'unknown-option', path: ['tool', 'deploy'] },
     { argv: ['deploy', 'app.ts', '--port=1', '--port', '2'], code: 'duplicate-option', path: ['tool', 'deploy'] },
     { argv: ['deploy', 'app.ts', '--verbose', '--verbose'], code: 'duplicate-option', path: ['tool', 'deploy'] },
-    { argv: ['deploy', 'app.ts', '--verbose=true'], code: 'invalid-value', path: ['tool', 'deploy'] },
-    { argv: ['deploy', 'app.ts', '--verbose=false'], code: 'invalid-value', path: ['tool', 'deploy'] },
     { argv: ['deploy', 'app.ts', '--verbose='], code: 'invalid-value', path: ['tool', 'deploy'] },
     { argv: ['deploy', 'app.ts', '--port'], code: 'missing-value', path: ['tool', 'deploy'] },
     { argv: ['deploy'], code: 'missing-required', path: ['tool', 'deploy'] },

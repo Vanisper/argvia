@@ -23,7 +23,7 @@ function optionValueLabel(field: FieldRules): string {
     case 'enum':
       return ' <值>'
     case 'boolean':
-      return ''
+      return '[=true|false]'
   }
 }
 

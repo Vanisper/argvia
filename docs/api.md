@@ -20,7 +20,9 @@
 
 `option.string({ multiple: true })` 得到 `string[]`：每次出现消费一个字符串，按该字段输入顺序收集，省略时得到独立的空数组。支持 `flag` 与 `description`，不接受 `required`、`default` 或显式 `undefined`；其他值类型与位置参数不支持重复集合。单值选项仍拒绝重复输入。集合保留普通字符串的空值、空白和取值规则，不拆分逗号或空白。
 
-布尔开关不接受取值，显式输入得到 `true`。`option.boolean()` 省略时得到 `undefined`；`option.boolean({ default: false })` 省略时得到 `false`。当前不支持布尔否定或显式传入 `false`。
+布尔选项的裸开关得到 `true`，也可以通过等号显式传入精确的小写 `true` 或 `false`，例如 `--include-tests=false`。布尔选项不消费下一项：`--include-tests false` 中的 `false` 仍作为位置参数处理。其他大小写、数值缩写、空值及带空白的值均被拒绝；裸开关与等号形式的任意重复组合都返回重复选项错误。
+
+`option.boolean()` 省略时得到 `undefined`；提供默认值时省略输入采用该值。显式 `false` 可以通过 `??` 覆盖项目配置中的 `true`。帮助显示 `[=true|false]`；`--no-include-tests` 等拼写需要单独声明，不会自动生成。
 
 ## 命令结构
 

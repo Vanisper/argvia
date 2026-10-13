@@ -130,7 +130,9 @@ function numberOption(config?: ValueConfig & SingleOptionConfig): Option<unknown
 /**
  * 定义布尔开关
  *
- * @description 不接受取值；显式输入为 true，省略时采用默认值或得到 undefined
+ * @description
+ * - 裸开关为 true，仅通过等号接受精确的小写 true 或 false，不消费下一项
+ * - 省略时采用默认值或得到 undefined
  */
 function booleanOption(config: DefaultConfig<boolean> & SingleOptionConfig): Option<boolean>
 function booleanOption(config?: OptionalConfig & SingleOptionConfig): Option<boolean | undefined>

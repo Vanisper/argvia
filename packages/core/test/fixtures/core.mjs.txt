@@ -25,9 +25,13 @@ async function main() {
     kind: 'executed',
     value: { verbose: true, force: false, items: ['a', 'b'] },
   })
+  assert.deepEqual(await core.run(command, { argv: ['--verbose-output=false', '--force=true'] }), {
+    kind: 'executed',
+    value: { verbose: false, force: true, items: [] },
+  })
   const help = await core.run(command, { argv: ['--help'] })
   assert.equal(help.kind, 'help')
-  assert.match(help.text, /--verbose-output/u)
+  assert.match(help.text, /--verbose-output\[=true\|false\]/u)
   assert.match(help.text, /--force/u)
   const leaf = core.defineCommand({
     options: { items: core.option.string({ flag: '--item', multiple: true }) },
