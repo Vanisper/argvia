@@ -7,7 +7,9 @@ export function verifyHelpTypes(): void {
   const label: ValueNameConfig = { valueName: '名称' }
   const defaultBoolean: DefaultConfig<boolean> = { default: false }
   const optionalBoolean: OptionalConfig = { description: '可选布尔值' }
+  const examples = ['tool --help'] as const
   defineCommand({
+    examples,
     args: [argument.string('entry', { required: true, valueName: '文件' })],
     options: {
       text: option.string(label),
@@ -39,4 +41,16 @@ export function verifyHelpTypes(): void {
   const labelledBoolean = { default: false, valueName: '布尔值' }
   // @ts-expect-error 抽出的布尔配置也不能带标签
   option.boolean(labelledBoolean)
+
+  const leaf = defineCommand({ examples, run() {} })
+  expectTypeOf(leaf.examples).toEqualTypeOf<readonly string[] | undefined>()
+  defineCommand({ examples, commands: { inspect: leaf } })
+  // @ts-expect-error 示例数组只读
+  leaf.examples?.push('tool inspect')
+  // @ts-expect-error 示例必须使用字符串数组
+  defineCommand({ examples: 'tool --help', run() {} })
+  // @ts-expect-error 示例项必须是字符串
+  defineCommand({ examples: [7], run() {} })
+  // @ts-expect-error 示例可省略但不能显式 undefined
+  defineCommand({ examples: undefined, commands: {} })
 }

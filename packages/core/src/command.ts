@@ -26,7 +26,7 @@ function validateName(name: string, label: string): void {
 /**
  * 创建经过校验的命令，并推导处理函数的参数类型
  *
- * @description 分组与叶子定义互斥；位置参数和选项规则在定义时保存，之后修改原对象不会改变命令
+ * @description 分组与叶子定义互斥；位置参数、选项和示例在定义时保存，之后修改原对象不会改变命令
  * @throws {DefinitionError} 参数顺序、命名或命令结构不成立时抛出
  */
 export function defineCommand<const Commands extends Readonly<Record<string, Command>>>(definition: GroupDefinition<Commands>): Command
@@ -44,9 +44,19 @@ export function defineCommand(
   if (definition.name !== undefined)
     validateName(definition.name, '程序名')
 
+  let examples: readonly string[] | undefined
+  if ('examples' in definition) {
+    if (!Array.isArray(definition.examples))
+      throw new DefinitionError('examples 必须是字符串数组')
+    const snapshot = [...definition.examples]
+    if (snapshot.some(value => typeof value !== 'string' || !value.trim() || /[\r\n\u2028\u2029]/u.test(value)))
+      throw new DefinitionError('examples 的每项必须是非空白单行文本')
+    examples = Object.freeze(snapshot)
+  }
   const meta = {
     ...(definition.name !== undefined ? { name: definition.name } : {}),
     ...(definition.description !== undefined ? { description: definition.description } : {}),
+    ...(examples !== undefined ? { examples } : {}),
   }
   let resolved: ResolvedCommand
 

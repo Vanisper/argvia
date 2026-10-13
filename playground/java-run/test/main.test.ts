@@ -89,9 +89,11 @@ describe('java-run 演示入口', () => {
     expect(result.stderr).toBe('')
     expect(result.stdout).toContain(usage)
     expect(result.stdout).not.toContain('"demo"')
+    expect(result.stdout).toContain('示例：')
     if (group) {
       expect(result.stdout).toContain('run（默认）')
-      expect(result.stdout).not.toContain('--tool')
+      expect(result.stdout).not.toContain('--tool <')
+      expect(result.stdout).toContain('java-run plan --tool=gradle -- --profile=dev')
     }
     else {
       expect(result.stdout).toContain('--tool')

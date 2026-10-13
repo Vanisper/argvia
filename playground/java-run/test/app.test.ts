@@ -197,16 +197,22 @@ describe('java-run 配置组合', () => {
       expect(result.text).toContain('每次传入一个非空白 JVM 参数；可重复')
       expect(result.text).toContain('每次传入一个应用参数，保留空串与空白；可重复')
       expect(result.text).toContain('应用参数最后追加 -- 透传值')
+      expect(result.text).toContain('示例：')
       if (action === 'init') {
         expect(result.text).toContain('--force')
         expect(result.text).toContain('仅使用本次输入与应用默认值，不读取旧配置')
         expect(result.text).not.toContain('配置 → CLI')
         expect(result.text).not.toContain('继承项目配置')
+        expect(result.text).toContain('java-run init --force --main=example.App --arg=hello')
       }
       else {
         expect(result.text).not.toContain('--force')
         expect(result.text).toContain('配置标量省略时继承项目配置')
         expect(result.text).toContain('数组按配置 → CLI 追加')
+        expect(result.text).not.toContain('java-run init')
+        expect(result.text).toContain(action === 'run'
+          ? 'java-run run --jvm-arg=-Xmx1g --arg=hello -- --profile=dev'
+          : 'java-run plan --tool=gradle --main=example.App -- --profile=dev')
       }
     }
     for (const service of Object.values(services))
@@ -575,7 +581,9 @@ describe('java-run 配置组合', () => {
       expect(rootHelp.text).toContain('默认')
       expect(rootHelp.text).toContain('plan')
       expect(rootHelp.text).toContain('init')
-      expect(rootHelp.text).not.toContain('--tool')
+      expect(rootHelp.text).not.toContain('--tool <')
+      expect(rootHelp.text).toContain('示例：\n  java-run --main=example.App --include-tests=false')
+      expect(rootHelp.text).toContain('java-run init --force --main=example.App')
     }
     const runHelp = await run(command, { argv: ['run', helpFlag] })
     expect(runHelp.kind).toBe('help')

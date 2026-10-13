@@ -80,5 +80,7 @@ export function renderHelp(command: ResolvedCommand, path: readonly string[]): s
   lines.push('  -h, --help  显示帮助')
   if (command.kind === 'leaf' && command.passthrough)
     lines.push('', '透传：', '  -- 后的参数原样保留，不再解析选项或位置参数')
+  if (command.examples?.length)
+    lines.push('', '示例：', ...command.examples.map(example => `  ${example}`))
   return lines.join('\n')
 }

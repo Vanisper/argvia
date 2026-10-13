@@ -29,10 +29,19 @@ export function createJavaRunCommand(
   return defineCommand({
     name: 'java-run',
     description: '运行 Java 应用、预览计划或初始化配置',
+    examples: [
+      'java-run --main=example.App --include-tests=false',
+      'java-run plan --tool=gradle -- --profile=dev',
+      'java-run init --force --main=example.App',
+    ],
     defaultCommand: 'run',
     commands: {
       run: defineCommand({
         description: '运行应用；配置标量省略时继承项目配置，数组按配置 → CLI 追加，应用参数最后追加 -- 透传值',
+        examples: [
+          'java-run --main=example.App --include-tests=false',
+          'java-run run --jvm-arg=-Xmx1g --arg=hello -- --profile=dev',
+        ],
         options: launchOptions,
         passthrough: true,
         async run({ options, passthrough }) {
@@ -42,6 +51,7 @@ export function createJavaRunCommand(
       }),
       plan: defineCommand({
         description: '预览启动计划；配置标量省略时继承项目配置，数组按配置 → CLI 追加，应用参数最后追加 -- 透传值',
+        examples: ['java-run plan --tool=gradle --main=example.App -- --profile=dev'],
         options: launchOptions,
         passthrough: true,
         async run({ options, passthrough }) {
@@ -50,6 +60,7 @@ export function createJavaRunCommand(
       }),
       init: defineCommand({
         description: '初始化项目配置；仅使用本次输入与应用默认值，不读取旧配置，应用参数最后追加 -- 透传值',
+        examples: ['java-run init --force --main=example.App --arg=hello'],
         options: {
           ...launchOptions,
           force: option.boolean({ default: false, description: '允许覆盖已有配置；关闭请用 --force=false' }),

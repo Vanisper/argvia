@@ -34,6 +34,7 @@ const valueLabel: ValueNameConfig = { valueName: '次数' }
 const config: ProjectConfig = { includeTests: true, retries: 4 }
 
 const command: Command = defineCommand({
+  examples: ['tool --entry=app'] as const,
   passthrough: true,
   options: {
     includeTests: option.boolean(optional),
@@ -74,6 +75,11 @@ const command: Command = defineCommand({
 })
 // @ts-expect-error 布尔开关不接受值标签
 option.boolean({ valueName: '布尔值' })
+expectType<readonly string[] | undefined>(command.examples)
+// @ts-expect-error 示例必须是字符串数组
+defineCommand({ examples: 'tool --help', run() {} })
+// @ts-expect-error 命令示例按只读数组提供
+command.examples?.push('tool --item=value')
 
 const input: RunConfig = { argv: ['--entry=application'] }
 const app = defineCommand({ commands: { run: command }, defaultCommand: 'run' })

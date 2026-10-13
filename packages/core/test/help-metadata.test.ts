@@ -71,3 +71,73 @@ describe('帮助值标签', () => {
       expect(() => Reflect.apply(option.boolean, undefined, [{ valueName }])).toThrow('布尔开关不支持 valueName')
   })
 })
+
+describe('命令帮助示例', () => {
+  it('当前命令按声明顺序显示示例，默认与嵌套路由不继承父级示例', async () => {
+    const handler = vi.fn()
+    const leaf = defineCommand({
+      examples: ['tool launch --item=first', 'tool launch --item=second -- --help'],
+      passthrough: true,
+      options: { item: option.string() },
+      run: handler,
+    })
+    const root = defineCommand({ name: 'tool', examples: ['tool --help'], commands: { launch: leaf }, defaultCommand: 'launch' })
+
+    const rootHelp = await run(root, { argv: ['--help'] })
+    const leafHelp = await run(root, { argv: ['launch', '--help'] })
+    const defaultHelp = await run(root, { argv: ['--item=first', '--help'] })
+    expect(rootHelp.kind).toBe('help')
+    expect(leafHelp.kind).toBe('help')
+    if (rootHelp.kind === 'help' && leafHelp.kind === 'help') {
+      expect(rootHelp.text.endsWith('示例：\n  tool --help')).toBe(true)
+      expect(rootHelp.text).not.toContain('tool launch --item=first')
+      expect(leafHelp.text.endsWith('示例：\n  tool launch --item=first\n  tool launch --item=second -- --help')).toBe(true)
+      expect(leafHelp.text).not.toContain('  tool --help')
+      expect(leafHelp.text.indexOf('示例：')).toBeGreaterThan(leafHelp.text.indexOf('透传：'))
+    }
+    expect(defaultHelp).toEqual(leafHelp)
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('保存示例快照，不冻结调用方数组，重新挂载时保留文本原文', async () => {
+    const examples = ['  original run --text=" a "  ']
+    const leaf = defineCommand({ examples, run() {} })
+    examples[0] = 'changed'
+    examples.push('added')
+    const wrapper = defineCommand({ name: 'other', commands: { inspect: leaf } })
+    const help = await run(wrapper, { argv: ['inspect', '--help'] })
+
+    expect(Object.isFrozen(examples)).toBe(false)
+    expect(Object.isFrozen(leaf.examples)).toBe(true)
+    expect(leaf.examples).toEqual(['  original run --text=" a "  '])
+    if (help.kind === 'help') {
+      expect(help.text).toContain('用法：other inspect')
+      expect(help.text.endsWith('示例：\n    original run --text=" a "  ')).toBe(true)
+      expect(help.text).not.toContain('changed')
+    }
+    else {
+      throw new Error('预期帮助结果')
+    }
+  })
+
+  it('省略或空数组都不显示示例段落', async () => {
+    const commands = [defineCommand({ run() {} }), defineCommand({ examples: [], run() {} }), defineCommand({ examples: [], commands: {} })]
+    for (const command of commands) {
+      const result = await run(command, { argv: ['--help'] })
+      expect(result.kind).toBe('help')
+      if (result.kind === 'help')
+        expect(result.text).not.toContain('示例：')
+    }
+  })
+
+  it.each([undefined, null, 'tool', {}, [''], [' '], [7], ['a\nb'], ['a\rb'], ['a\u2028b'], ['a\u2029b'], Array.from({ length: 1 })])('拒绝非法示例配置：%j', (examples) => {
+    for (const definition of [{ examples, run() {} }, { examples, commands: {} }])
+      expect(() => Reflect.apply(defineCommand, undefined, [definition])).toThrow(DefinitionError)
+  })
+
+  it('拒绝含空位的稀疏示例数组', () => {
+    const examples = ['tool --help']
+    examples.length = 2
+    expect(() => defineCommand({ examples, run() {} })).toThrow(DefinitionError)
+  })
+})

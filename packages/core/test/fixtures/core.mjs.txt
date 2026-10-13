@@ -10,6 +10,7 @@ async function main() {
   const core = await import('@argvia/core')
   assert.equal('runMain' in core, false)
   const command = core.defineCommand({
+    examples: ['tool --item=a'],
     options: {
       verbose: core.option.boolean({ flag: '--verbose-output' }),
       force: core.option.boolean({ default: false }),
@@ -34,6 +35,7 @@ async function main() {
   assert.match(help.text, /--verbose-output\[=true\|false\]/u)
   assert.match(help.text, /--force/u)
   assert.match(help.text, /--item <参数>/u)
+  assert.match(help.text, /示例：\n  tool --item=a$/u)
   const leaf = core.defineCommand({
     options: { items: core.option.string({ flag: '--item', multiple: true }) },
     passthrough: true,

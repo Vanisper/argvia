@@ -123,6 +123,8 @@ export interface CommandMeta {
   /** 根命令在帮助中显示的程序名，省略时使用 argvia */
   readonly name?: string
   readonly description?: string
+  /** 当前命令的完整调用示例，非空白单行文本按顺序展示 */
+  readonly examples?: readonly string[]
 }
 
 /** 已完成定义校验、可交给执行器或命令分组的命令 */

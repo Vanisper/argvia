@@ -30,6 +30,8 @@
 
 叶子命令提供 `run`，可以声明 `args` 和 `options`。分组命令提供 `commands`，不能同时声明处理函数或参数；子命令名由 `commands` 的对象键决定。根 `name` 用于帮助路径，省略时为 `argvia`。
 
+分组与叶子均支持 `examples: readonly string[]`，在当前命令的帮助末尾按顺序展示完整调用示例。每项必须是非空白单行字符串，数组在定义时复制并冻结；空数组不显示示例段落，非法配置抛出 `DefinitionError`。示例不继承、不执行，也不随挂载路径改写，完整规则见[帮助与诊断契约](help-contract.md)。
+
 ```ts
 import { defineCommand, option, run } from '@argvia/core'
 
