@@ -1,4 +1,4 @@
-import type { DefaultConfig, OptionConfig, RequiredConfig } from '@argvia/core'
+import type { DefaultConfig, MultipleConfig, Option, OptionConfig, RequiredConfig } from '@argvia/core'
 import { argument, defineCommand, option } from '@argvia/core'
 import { expectTypeOf } from 'vitest'
 
@@ -58,6 +58,81 @@ export function verifyInputTypes(): void {
     // @ts-expect-error 终端拼写不允许处理函数反向收窄可选字段
     run({ options }: { options: { token: string } }) {
       return options.token.toUpperCase()
+    },
+  })
+}
+
+/** 检查重复字符串的数组推导与单值配置隔离，负例只参与编译检查 */
+export function verifyMultipleTypes(): void {
+  const repeatedConfig: MultipleConfig = { multiple: true, flag: '--arg' }
+  const sharedOptions = { applicationArgs: option.string(repeatedConfig) }
+
+  defineCommand({
+    options: {
+      ...sharedOptions,
+      jvmArgs: option.string({ multiple: true, flag: '--jvm-arg' }),
+      label: option.string({ multiple: false }),
+      count: option.number({ multiple: false, default: 1 }),
+      force: option.boolean({ multiple: false, default: false }),
+      mode: option.enum(['dev', 'prod'], { multiple: false, required: true }),
+    },
+    run({ options }) {
+      expectTypeOf(options.applicationArgs).toEqualTypeOf<string[]>()
+      expectTypeOf(options.jvmArgs).toEqualTypeOf<string[]>()
+      expectTypeOf(options.label).toEqualTypeOf<string | undefined>()
+      expectTypeOf(options.count).toEqualTypeOf<number>()
+      expectTypeOf(options.force).toEqualTypeOf<boolean>()
+      expectTypeOf(options.mode).toEqualTypeOf<'dev' | 'prod'>()
+      options.applicationArgs.push('extra')
+
+      // @ts-expect-error 重复选项不会作为标量输入
+      expectTypeOf<string>(options.jvmArgs)
+      // @ts-expect-error 重复选项的终端拼写不会增加结果字段
+      expectTypeOf(options['jvm-arg'])
+    },
+  })
+
+  const dynamicOptions: Record<string, Option<string[]>> = sharedOptions
+  defineCommand({
+    options: dynamicOptions,
+    run({ options }) {
+      expectTypeOf(options.missing).toEqualTypeOf<string[] | undefined>()
+    },
+  })
+
+  const withDefault = { multiple: true, default: 'value' } as const
+  const withRequired = { multiple: true, required: true } as const
+  const withOptional = { multiple: true, required: false } as const
+  // @ts-expect-error 提取后的重复配置不能误选带默认值的单值重载
+  option.string(withDefault)
+  // @ts-expect-error 提取后的重复配置不能误选必填单值重载
+  option.string(withRequired)
+  // @ts-expect-error 重复配置也不接受 required 为 false
+  option.string(withOptional)
+  // @ts-expect-error 重复配置不接受数组默认值
+  option.string({ multiple: true, default: [] })
+  // @ts-expect-error 重复配置不接受显式 undefined 默认值
+  option.string({ multiple: true, default: undefined })
+  // @ts-expect-error multiple 属性不能显式为 undefined
+  option.string({ multiple: undefined })
+  // @ts-expect-error 数值选项不支持重复配置，即使配置已提取
+  option.number(repeatedConfig)
+  // @ts-expect-error 布尔选项不支持重复配置，即使配置已提取
+  option.boolean(repeatedConfig)
+  // @ts-expect-error 枚举选项不支持重复配置，即使配置已提取
+  option.enum(['dev', 'prod'], repeatedConfig)
+  // @ts-expect-error 位置参数不支持重复输入
+  argument.string('entry', { multiple: true })
+  // @ts-expect-error 位置参数也不接受 multiple 为 false
+  argument.string('entry', { multiple: false })
+  // @ts-expect-error 提取后的 multiple 配置不能进入位置参数
+  argument.string('entry', withRequired)
+
+  defineCommand({
+    options: sharedOptions,
+    // @ts-expect-error 处理函数不能反向将重复字符串推导为标量
+    run({ options }: { options: { applicationArgs: string } }) {
+      return options.applicationArgs
     },
   })
 }

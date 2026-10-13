@@ -18,6 +18,8 @@ export interface FieldRules {
 export interface Option<Value> extends FieldRules {
   /** 显式长选项拼写，省略时由命令定义中的对象键决定 */
   readonly flag?: `--${string}`
+  /** 是否按出现顺序收集字符串，省略输入时得到空数组 */
+  readonly multiple?: boolean
   readonly [fieldValue]?: Value
 }
 
@@ -25,6 +27,7 @@ export interface Option<Value> extends FieldRules {
 export interface Argument<Name extends string, Value> extends Option<Value> {
   readonly name: Name
   readonly flag?: never
+  readonly multiple?: never
 }
 
 /** 参数的帮助说明 */
@@ -40,6 +43,14 @@ export interface OptionConfig extends FieldConfig {
    * @description 必须以 -- 和字母开头，后续仅含字母、数字、下划线或连字符；结果字段名仍由对象键决定
    */
   readonly flag?: `--${string}`
+}
+
+/** 收集重复字符串的选项规则，不接受 required 或 default */
+export interface MultipleConfig extends OptionConfig {
+  /** 每次出现收集一个字符串，每次执行使用独立数组 */
+  readonly multiple: true
+  readonly required?: never
+  readonly default?: never
 }
 
 /** 要求调用者显式输入的字段规则 */

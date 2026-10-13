@@ -51,7 +51,7 @@ function parseInput(
 ): ParsedInput {
   const options = new Map<string, unknown>()
   for (const { name, field } of Object.values(command.options))
-    options.set(name, field.default)
+    options.set(name, field.multiple ? [] : field.default)
 
   const suppliedOptions = new Set<string>()
   const positional: string[] = []
@@ -65,7 +65,7 @@ function parseInput(
       return invalidInput(path, 'unknown-option', `未知选项「${token.flag}」`)
 
     const { name, flag, field } = token.option
-    if (suppliedOptions.has(name))
+    if (!field.multiple && suppliedOptions.has(name))
       return invalidInput(path, 'duplicate-option', `选项「${flag}」不能重复输入`)
     suppliedOptions.add(name)
 
@@ -81,7 +81,13 @@ function parseInput(
     const parsed = parseValue(field, token.value)
     if (!parsed.ok)
       return invalidInput(path, 'invalid-value', `选项「${flag}」${parsed.message}`)
-    options.set(name, parsed.value)
+    if (field.multiple) {
+      const values = options.get(name) as unknown[]
+      values.push(parsed.value)
+    }
+    else {
+      options.set(name, parsed.value)
+    }
   }
 
   if (positional.length > command.args.length)

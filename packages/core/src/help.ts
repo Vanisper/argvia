@@ -58,7 +58,7 @@ export function renderHelp(command: ResolvedCommand, path: readonly string[]): s
   lines.push('', '选项：')
   if (command.kind === 'leaf') {
     for (const { flag, field } of Object.values(command.options)) {
-      const details = describeField(field)
+      const details = [describeField(field), field.multiple ? '可重复' : ''].filter(Boolean).join('；')
       lines.push(`  ${flag}${optionValueLabel(field)}${details ? `  ${details}` : ''}`)
     }
   }

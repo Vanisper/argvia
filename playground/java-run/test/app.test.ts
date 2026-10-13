@@ -1,7 +1,7 @@
-import type { InitRequest, LaunchConfig, ProjectConfig } from '../src/app.js'
+import type { InitRequest, LaunchConfig, LaunchInput, ProjectConfig } from '../src/app.js'
 import { run } from '@argvia/core'
 import { describe, expect, it, vi } from 'vitest'
-import { createJavaRunCommand } from '../src/app.js'
+import { createJavaRunCommand, resolveLaunchConfig } from '../src/app.js'
 
 function createApplication(project: ProjectConfig = {}) {
   const readProjectConfig = vi.fn(async (_cwd: string) => project)
@@ -13,7 +13,7 @@ function createApplication(project: ProjectConfig = {}) {
   return { command, services }
 }
 
-describe('java-run 标量配置组合', () => {
+describe('java-run 配置组合', () => {
   it.each(['run', 'plan'])('省略 CLI 布尔选项保留配置文件中的 true：%s', async (action) => {
     const { command, services } = createApplication({
       buildTool: 'maven',
@@ -31,6 +31,9 @@ describe('java-run 标量配置组合', () => {
       includeTests: true,
       javaCommand: undefined,
       buildCommand: undefined,
+      jvmArgs: [],
+      applicationArgs: [],
+      buildArgs: [],
     }
 
     expect(await run(command, { argv: [action] })).toEqual({ kind: 'executed', value: request })
@@ -60,6 +63,9 @@ describe('java-run 标量配置组合', () => {
       includeTests: true,
       javaCommand: '/tools/java',
       buildCommand: '/tools/gradle',
+      jvmArgs: [],
+      applicationArgs: [],
+      buildArgs: [],
     }
     const argv = [
       action,
@@ -103,6 +109,9 @@ describe('java-run 标量配置组合', () => {
         includeTests: false,
         javaCommand: undefined,
         buildCommand: undefined,
+        jvmArgs: [],
+        applicationArgs: [],
+        buildArgs: [],
       },
     })
     expect(services.launch).toHaveBeenCalledOnce()
@@ -137,6 +146,9 @@ describe('java-run 标量配置组合', () => {
       includeTests,
       javaCommand: undefined,
       buildCommand: undefined,
+      jvmArgs: [],
+      applicationArgs: [],
+      buildArgs: [],
       force,
     }
 
@@ -155,7 +167,7 @@ describe('java-run 标量配置组合', () => {
     expect(result.kind).toBe('help')
     if (result.kind === 'help') {
       expect(result.text).toContain(`java-run ${action}`)
-      for (const flag of ['--tool', '--main', '--include-tests', '--java', '--build-command'])
+      for (const flag of ['--tool', '--main', '--include-tests', '--java', '--build-command', '--jvm-arg', '--arg', '--build-arg'])
         expect(result.text).toContain(flag)
       for (const key of ['--buildTool', '--mainClass', '--includeTests', '--javaCommand', '--buildCommand'])
         expect(result.text).not.toContain(key)
@@ -166,6 +178,89 @@ describe('java-run 标量配置组合', () => {
     }
     for (const service of Object.values(services))
       expect(service).not.toHaveBeenCalled()
+  })
+
+  it.each(['run', 'plan', 'init'])('交错重复选项按各自输入顺序组合，保留等号与空值：%s', async (action) => {
+    const project = Object.freeze({
+      jvmArgs: Object.freeze(['-Xms256m']),
+      applicationArgs: Object.freeze(['configured']),
+      buildArgs: Object.freeze(['--offline']),
+    })
+    const { command, services } = createApplication(project)
+    if (action === 'init')
+      services.readProjectConfig.mockRejectedValue(new Error('旧配置无效'))
+    const argv = Object.freeze([
+      action,
+      '--jvm-arg=-Dname=a=b',
+      '--arg=hello world',
+      '--build-arg=-Pdev',
+      '--jvm-arg=-Xmx1g',
+      '--arg',
+      '',
+      '--build-arg=',
+    ])
+    const value = {
+      jvmArgs: [...(action === 'init' ? [] : project.jvmArgs), '-Dname=a=b', '-Xmx1g'],
+      applicationArgs: [...(action === 'init' ? [] : project.applicationArgs), 'hello world', ''],
+      buildArgs: [...(action === 'init' ? [] : project.buildArgs), '-Pdev', ''],
+    }
+
+    expect(await run(command, { argv })).toMatchObject({ kind: 'executed', value })
+    if (action === 'init') {
+      expect(services.readProjectConfig).not.toHaveBeenCalled()
+      expect(services.initialize).toHaveBeenCalledExactlyOnceWith(expect.objectContaining(value))
+      expect(services.launch).not.toHaveBeenCalled()
+      expect(services.plan).not.toHaveBeenCalled()
+    }
+    else {
+      expect(services.readProjectConfig).toHaveBeenCalledExactlyOnceWith('/project')
+      expect(action === 'run' ? services.launch : services.plan).toHaveBeenCalledExactlyOnceWith(expect.objectContaining(value))
+      expect(services.initialize).not.toHaveBeenCalled()
+    }
+    expect(project).toEqual({
+      jvmArgs: ['-Xms256m'],
+      applicationArgs: ['configured'],
+      buildArgs: ['--offline'],
+    })
+  })
+
+  it('配置组合返回独立数组，修改结果不影响 CLI、项目配置或后续调用', () => {
+    const cli: LaunchInput = {
+      cwd: undefined,
+      buildTool: undefined,
+      build: undefined,
+      module: undefined,
+      mainClass: undefined,
+      includeTests: undefined,
+      javaCommand: undefined,
+      buildCommand: undefined,
+      jvmArgs: ['-Xmx1g'],
+      applicationArgs: ['cli'],
+      buildArgs: ['--info'],
+    }
+    const project = {
+      jvmArgs: ['-Xms256m'],
+      applicationArgs: ['configured'],
+      buildArgs: ['--offline'],
+    }
+    for (const values of [cli.jvmArgs, cli.applicationArgs, cli.buildArgs, ...Object.values(project)])
+      Object.freeze(values)
+    const first = resolveLaunchConfig(cli, project, { cwd: '/project' })
+    first.jvmArgs.push('changed')
+    first.applicationArgs.push('changed')
+    first.buildArgs.push('changed')
+    const second = resolveLaunchConfig(cli, project, { cwd: '/project' })
+
+    expect(second).toMatchObject({
+      jvmArgs: ['-Xms256m', '-Xmx1g'],
+      applicationArgs: ['configured', 'cli'],
+      buildArgs: ['--offline', '--info'],
+    })
+    for (const key of ['jvmArgs', 'applicationArgs', 'buildArgs'] as const) {
+      expect(first[key]).not.toBe(second[key])
+      expect(second[key]).not.toBe(cli[key])
+      expect(second[key]).not.toBe(project[key])
+    }
   })
 
   it.each([

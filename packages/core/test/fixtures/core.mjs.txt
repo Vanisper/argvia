@@ -13,16 +13,17 @@ async function main() {
     options: {
       verbose: core.option.boolean({ flag: '--verbose-output' }),
       force: core.option.boolean({ default: false }),
+      items: core.option.string({ flag: '--item', multiple: true }),
     },
     run: context => context.options,
   })
   assert.deepEqual(await core.run(command, { argv: [] }), {
     kind: 'executed',
-    value: { verbose: undefined, force: false },
+    value: { verbose: undefined, force: false, items: [] },
   })
-  assert.deepEqual(await core.run(command, { argv: ['--verbose-output'] }), {
+  assert.deepEqual(await core.run(command, { argv: ['--verbose-output', '--item=a', '--item=b'] }), {
     kind: 'executed',
-    value: { verbose: true, force: false },
+    value: { verbose: true, force: false, items: ['a', 'b'] },
   })
   const help = await core.run(command, { argv: ['--help'] })
   assert.equal(help.kind, 'help')

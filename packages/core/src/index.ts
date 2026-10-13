@@ -15,6 +15,7 @@ export type {
   InferOptions,
   InputDiagnostic,
   LeafDefinition,
+  MultipleConfig,
   Option,
   OptionalConfig,
   OptionConfig,

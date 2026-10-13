@@ -4,7 +4,7 @@ import { defineCommand } from '@argvia/core'
 import { expectTypeOf } from 'vitest'
 import { createJavaRunCommand, initOptions, launchOptions, resolveLaunchConfig } from './app.js'
 
-/** 检查标量共享定义和配置组合的类型，负例只参与编译检查 */
+/** 检查共享定义和配置组合的类型，负例只参与编译检查 */
 export function verifyJavaRunTypes(): void {
   const runCommand = defineCommand({
     options: launchOptions,
@@ -16,6 +16,9 @@ export function verifyJavaRunTypes(): void {
       expectTypeOf(options.includeTests).toEqualTypeOf<boolean | undefined>()
       expectTypeOf(options.javaCommand).toEqualTypeOf<string | undefined>()
       expectTypeOf(options.buildCommand).toEqualTypeOf<string | undefined>()
+      expectTypeOf(options.jvmArgs).toEqualTypeOf<string[]>()
+      expectTypeOf(options.applicationArgs).toEqualTypeOf<string[]>()
+      expectTypeOf(options.buildArgs).toEqualTypeOf<string[]>()
 
       // @ts-expect-error CLI 拼写不改变结果字段名
       expectTypeOf(options.tool)
@@ -27,6 +30,10 @@ export function verifyJavaRunTypes(): void {
       expectTypeOf(options.java)
       // @ts-expect-error CLI 拼写不改变结果字段名
       expectTypeOf(options['build-command'])
+      // @ts-expect-error 重复选项仍以领域字段访问
+      expectTypeOf(options['jvm-arg'])
+      // @ts-expect-error 重复选项不能作为单值使用
+      expectTypeOf<string>(options.applicationArgs)
 
       // @ts-expect-error force 只属于 init
       expectTypeOf(options.force)
@@ -36,6 +43,9 @@ export function verifyJavaRunTypes(): void {
       expectTypeOf(resolved.buildTool).toEqualTypeOf<'auto' | 'maven' | 'gradle'>()
       expectTypeOf(resolved.build).toEqualTypeOf<'auto' | 'none'>()
       expectTypeOf(resolved.includeTests).toEqualTypeOf<boolean>()
+      expectTypeOf(resolved.jvmArgs).toEqualTypeOf<string[]>()
+      expectTypeOf(resolved.applicationArgs).toEqualTypeOf<string[]>()
+      expectTypeOf(resolved.buildArgs).toEqualTypeOf<string[]>()
       return resolved
     },
   })
@@ -45,6 +55,9 @@ export function verifyJavaRunTypes(): void {
     run({ options }) {
       expectTypeOf(options).toEqualTypeOf<LaunchInput>()
       expectTypeOf(options.includeTests).toEqualTypeOf<boolean | undefined>()
+      expectTypeOf(options.jvmArgs).toEqualTypeOf<string[]>()
+      expectTypeOf(options.applicationArgs).toEqualTypeOf<string[]>()
+      expectTypeOf(options.buildArgs).toEqualTypeOf<string[]>()
       // @ts-expect-error plan 不接受 init 的覆盖开关
       expectTypeOf(options.force)
       return options
@@ -56,6 +69,9 @@ export function verifyJavaRunTypes(): void {
     run({ options }) {
       expectTypeOf(options.force).toEqualTypeOf<boolean>()
       expectTypeOf(options.includeTests).toEqualTypeOf<boolean | undefined>()
+      expectTypeOf(options.jvmArgs).toEqualTypeOf<string[]>()
+      expectTypeOf(options.applicationArgs).toEqualTypeOf<string[]>()
+      expectTypeOf(options.buildArgs).toEqualTypeOf<string[]>()
       return options.force
     },
   })

@@ -35,12 +35,16 @@ const command: Command = defineCommand({
     force: option.boolean(defaultFalse),
     retries: option.number(),
     target: option.string({ ...required, flag: '--entry' }),
+    items: option.string({ flag: '--item', multiple: true }),
   },
   run({ options }) {
     expectType<boolean | undefined>(options.includeTests)
     expectType<boolean>(options.force)
     expectType<number | undefined>(options.retries)
     expectType<string>(options.target)
+    expectType<string[]>(options.items)
+    // @ts-expect-error 重复字符串得到数组
+    expectType<string>(options.items)
 
     // @ts-expect-error 无默认值的布尔选项不能作为必有布尔值使用
     expectType<boolean>(options.includeTests)
