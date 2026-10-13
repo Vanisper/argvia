@@ -1,4 +1,4 @@
-import type { DefaultConfig, MultipleConfig, Option, OptionConfig, RequiredConfig } from '@argvia/core'
+import type { CommandContext, DefaultConfig, LeafDefinition, MultipleConfig, Option, OptionConfig, RequiredConfig } from '@argvia/core'
 import { argument, defineCommand, option } from '@argvia/core'
 import { expectTypeOf } from 'vitest'
 
@@ -135,4 +135,79 @@ export function verifyMultipleTypes(): void {
       return options.applicationArgs
     },
   })
+}
+
+/** 检查透传启用条件与只读上下文，负例只参与编译检查 */
+export function verifyPassthroughTypes(): void {
+  const enabled = defineCommand({
+    passthrough: true,
+    args: [argument.string('entry', { required: true })],
+    options: {
+      applicationArgs: option.string({ multiple: true, flag: '--arg' }),
+      label: option.string(),
+    },
+    run(context) {
+      expectTypeOf(context.args.entry).toEqualTypeOf<string>()
+      expectTypeOf(context.options.applicationArgs).toEqualTypeOf<string[]>()
+      expectTypeOf(context.options.label).toEqualTypeOf<string | undefined>()
+      expectTypeOf(context.passthrough).toEqualTypeOf<readonly string[]>()
+      // @ts-expect-error 透传数组不可原地修改
+      context.passthrough.push('extra')
+      // @ts-expect-error 透传上下文字段不可重新赋值
+      context.passthrough = []
+    },
+  })
+
+  defineCommand({
+    run({ options, passthrough }) {
+      expectTypeOf(options.port).toEqualTypeOf<number>()
+      expectTypeOf(passthrough).toEqualTypeOf<readonly string[]>()
+    },
+    options: { port: option.number({ default: 3000 }) },
+    passthrough: true,
+  })
+
+  defineCommand({
+    run(context) {
+      // @ts-expect-error 未启用透传时没有对应上下文字段
+      expectTypeOf(context.passthrough)
+    },
+  })
+
+  defineCommand({
+    passthrough: false,
+    run(context) {
+      // @ts-expect-error 显式关闭透传时没有对应上下文字段
+      expectTypeOf(context.passthrough)
+    },
+  })
+
+  const definition: LeafDefinition<readonly [], Record<never, never>, true> = {
+    passthrough: true,
+    run(context) {
+      expectTypeOf(context).toEqualTypeOf<CommandContext<readonly [], Record<never, never>, true>>()
+      return context.passthrough
+    },
+  }
+  defineCommand(definition)
+
+  // @ts-expect-error 显式声明启用透传的定义也必须提供 true 标记
+  const missingMarker: LeafDefinition<readonly [], Record<never, never>, true> = { run() {} }
+  void missingMarker
+  // @ts-expect-error 显式泛型不能在省略启用标记时要求透传上下文
+  defineCommand<readonly [], Record<never, never>>({ run: (context: CommandContext<readonly [], Record<never, never>, true>) => context.passthrough })
+
+  const dynamicPassthrough: boolean = Math.random() > 0.5
+  // @ts-expect-error 动态布尔配置需要调用者先缩窄
+  defineCommand({ passthrough: dynamicPassthrough, run() {} })
+  // @ts-expect-error 透传标记不能显式为 undefined
+  defineCommand({ passthrough: undefined, run() {} })
+  // @ts-expect-error 透传标记不能是非布尔值
+  defineCommand({ passthrough: 'true', run() {} })
+  // @ts-expect-error 分组不提供透传能力
+  defineCommand({ commands: { enabled }, passthrough: true })
+  // @ts-expect-error 分组也不能声明关闭透传
+  defineCommand({ commands: { enabled }, passthrough: false })
+  // @ts-expect-error 分组也不能显式声明 undefined 透传标记
+  defineCommand({ commands: { enabled }, passthrough: undefined })
 }

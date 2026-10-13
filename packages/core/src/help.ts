@@ -36,7 +36,7 @@ export function renderHelp(command: ResolvedCommand, path: readonly string[]): s
   }
   else {
     const args = command.args.map(field => field.required ? `<${field.name}>` : `[${field.name}]`)
-    lines.push(`用法：${[invocation, ...args, '[选项]'].join(' ')}`)
+    lines.push(`用法：${[invocation, ...args, '[选项]', ...(command.passthrough ? ['[-- 原始参数...]'] : [])].join(' ')}`)
   }
 
   if (command.description)
@@ -63,5 +63,7 @@ export function renderHelp(command: ResolvedCommand, path: readonly string[]): s
     }
   }
   lines.push('  -h, --help  显示帮助')
+  if (command.kind === 'leaf' && command.passthrough)
+    lines.push('', '透传：', '  -- 后的参数原样保留，不再解析选项或位置参数')
   return lines.join('\n')
 }

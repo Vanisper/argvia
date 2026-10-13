@@ -113,7 +113,14 @@ function parseInput(
       return invalidInput(path, 'missing-required', `缺少必填选项「${flag}」`)
   }
 
-  return { kind: 'parsed', context: { args: Object.fromEntries(args), options: Object.fromEntries(options) } }
+  return {
+    kind: 'parsed',
+    context: {
+      args: Object.fromEntries(args),
+      options: Object.fromEntries(options),
+      ...(command.passthrough ? { passthrough: input.passthrough } : {}),
+    },
+  }
 }
 
 /**

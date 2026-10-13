@@ -14,6 +14,10 @@ import { assertDescriptor } from './fields.js'
 
 const definitions = new WeakMap<Command, ResolvedCommand>()
 
+type AnyLeafDefinition
+  = | LeafDefinition<readonly Argument<string, unknown>[], Readonly<Record<string, Option<unknown>>>>
+    | LeafDefinition<readonly Argument<string, unknown>[], Readonly<Record<string, Option<unknown>>>, true>
+
 function validateName(name: string, label: string): void {
   if (typeof name !== 'string' || !COMMAND_IDENTIFIER.test(name))
     throw new DefinitionError(`${label}「${name}」必须以字母开头，且只包含字母、数字、下划线或连字符`)
@@ -29,9 +33,13 @@ export function defineCommand(definition: GroupDefinition): Command
 export function defineCommand<
   const Args extends readonly Argument<string, unknown>[] = readonly [],
   const Options extends Readonly<Record<string, Option<unknown>>> = Record<never, never>,
+>(definition: LeafDefinition<Args, Options, true>): Command
+export function defineCommand<
+  const Args extends readonly Argument<string, unknown>[] = readonly [],
+  const Options extends Readonly<Record<string, Option<unknown>>> = Record<never, never>,
 >(definition: LeafDefinition<Args, Options>): Command
 export function defineCommand(
-  definition: GroupDefinition | LeafDefinition<readonly Argument<string, unknown>[], Readonly<Record<string, Option<unknown>>>>,
+  definition: GroupDefinition | AnyLeafDefinition,
 ): Command {
   if (definition.name !== undefined)
     validateName(definition.name, '程序名')
@@ -45,8 +53,8 @@ export function defineCommand(
   if (Object.hasOwn(definition, 'commands')) {
     if (!definition.commands || typeof definition.commands !== 'object')
       throw new DefinitionError('分组必须提供 commands 对象')
-    if (['args', 'options', 'run'].some(key => Object.hasOwn(definition, key)))
-      throw new DefinitionError('分组不能同时声明 args、options 或 run')
+    if (['args', 'options', 'run'].some(key => Object.hasOwn(definition, key)) || 'passthrough' in definition)
+      throw new DefinitionError('分组不能同时声明 args、options、run 或 passthrough')
     for (const [name, command] of Object.entries(definition.commands)) {
       validateName(name, '子命令名')
       getDefinition(command)
@@ -56,6 +64,8 @@ export function defineCommand(
   else {
     if (typeof definition.run !== 'function')
       throw new DefinitionError('叶子命令必须提供 run 处理函数')
+    if ('passthrough' in definition && typeof definition.passthrough !== 'boolean')
+      throw new DefinitionError('passthrough 需省略或提供布尔值')
     for (const key of ['args', 'options'] as const) {
       if (Object.hasOwn(definition, key) && definition[key] === undefined)
         throw new DefinitionError(`${key} 需省略或提供有效定义，不能显式传入 undefined`)
@@ -93,6 +103,7 @@ export function defineCommand(
       kind: 'leaf',
       args: Object.freeze([...args]),
       options: Object.freeze(Object.fromEntries(resolvedOptions)),
+      passthrough: definition.passthrough === true,
       invoke,
     }
   }

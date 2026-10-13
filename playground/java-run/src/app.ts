@@ -71,11 +71,12 @@ export interface JavaRunEnvironment {
   readonly cwd: string
 }
 
-/** 显式 CLI 标量覆盖项目配置，数组在配置后追加，再补齐应用默认值 */
+/** 显式 CLI 标量覆盖配置，数组依次追加 CLI 输入，应用参数最后追加透传值 */
 export function resolveLaunchConfig(
   cli: LaunchInput,
   project: ProjectConfig,
   environment: JavaRunEnvironment,
+  passthrough: readonly string[] = [],
 ): LaunchConfig {
   return {
     cwd: cli.cwd ?? environment.cwd,
@@ -84,7 +85,7 @@ export function resolveLaunchConfig(
     module: cli.module ?? project.module,
     mainClass: cli.mainClass ?? project.mainClass,
     jvmArgs: [...(project.jvmArgs ?? []), ...cli.jvmArgs],
-    applicationArgs: [...(project.applicationArgs ?? []), ...cli.applicationArgs],
+    applicationArgs: [...(project.applicationArgs ?? []), ...cli.applicationArgs, ...passthrough],
     buildArgs: [...(project.buildArgs ?? []), ...cli.buildArgs],
     includeTests: cli.includeTests ?? project.includeTests ?? false,
     javaCommand: cli.javaCommand,
@@ -97,9 +98,9 @@ export function createJavaRunCommand(
   services: JavaRunServices,
   environment: JavaRunEnvironment,
 ): Command {
-  async function resolveConfiguredInput(cli: LaunchInput): Promise<LaunchConfig> {
+  async function resolveConfiguredInput(cli: LaunchInput, passthrough: readonly string[]): Promise<LaunchConfig> {
     const project = await services.readProjectConfig(cli.cwd ?? environment.cwd)
-    return resolveLaunchConfig(cli, project, environment)
+    return resolveLaunchConfig(cli, project, environment, passthrough)
   }
 
   return defineCommand({
@@ -109,23 +110,26 @@ export function createJavaRunCommand(
       run: defineCommand({
         description: '运行应用',
         options: launchOptions,
-        async run({ options }) {
-          return services.launch(await resolveConfiguredInput(options))
+        passthrough: true,
+        async run({ options, passthrough }) {
+          return services.launch(await resolveConfiguredInput(options, passthrough))
         },
       }),
       plan: defineCommand({
         description: '预览启动计划',
         options: launchOptions,
-        async run({ options }) {
-          return services.plan(await resolveConfiguredInput(options))
+        passthrough: true,
+        async run({ options, passthrough }) {
+          return services.plan(await resolveConfiguredInput(options, passthrough))
         },
       }),
       init: defineCommand({
         description: '初始化项目配置',
         options: initOptions,
-        run({ options }) {
+        passthrough: true,
+        run({ options, passthrough }) {
           return services.initialize({
-            ...resolveLaunchConfig(options, {}, environment),
+            ...resolveLaunchConfig(options, {}, environment, passthrough),
             force: options.force,
           })
         },

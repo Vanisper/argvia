@@ -56,9 +56,10 @@ pnpm exec turbo run build --filter=@argvia/node
 | [`packages/core`](packages/core/) | `@argvia/core`：命令定义、类型推导、解析、校验、帮助和显式 argv 执行 |
 | [`packages/node`](packages/node/) | `@argvia/node`：Node.js 进程入口 |
 | [`playground/basic`](playground/basic/) | 组合 core 与 Node 包，展示叶子命令、共享选项和进程入口 |
-| [`playground/java-run`](playground/java-run/) | 使用 core 验证内存配置覆盖与命令局部选项 |
+| [`playground/java-run`](playground/java-run/) | 使用 core 验证配置覆盖、命令局部选项与参数转发 |
 | [`docs/api.md`](docs/api.md) | 当前 API 与输入行为 |
 | [`docs/design.md`](docs/design.md) | 模块边界、类型约束与后续设计问题 |
-| [`docs/java-run.md`](docs/java-run.md) | 配置组合场景与后续参数转发需求 |
+| [`docs/input-contract.md`](docs/input-contract.md) | 字段拼写、重复字符串、透传和默认命令的组合契约 |
+| [`docs/java-run.md`](docs/java-run.md) | run、plan、init 的配置组合与参数转发场景 |
 
-字段拼写映射、重复值集合、原样透传和默认子命令尚未实现。Node 进程入口已验证，Bun 的兼容性仍待验证。
+当前支持字段拼写映射、重复字符串与原样透传；默认子命令按输入契约继续实现。Node 进程入口已验证，Bun 的兼容性仍待验证。

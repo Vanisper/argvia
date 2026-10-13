@@ -30,6 +30,7 @@ const required: RequiredConfig = { required: true }
 const config: ProjectConfig = { includeTests: true, retries: 4 }
 
 const command: Command = defineCommand({
+  passthrough: true,
   options: {
     includeTests: option.boolean(optional),
     force: option.boolean(defaultFalse),
@@ -37,7 +38,10 @@ const command: Command = defineCommand({
     target: option.string({ ...required, flag: '--entry' }),
     items: option.string({ flag: '--item', multiple: true }),
   },
-  run({ options }) {
+  run({ options, passthrough }) {
+    expectType<readonly string[]>(passthrough)
+    // @ts-expect-error 透传上下文按只读数组提供
+    passthrough.push('value')
     expectType<boolean | undefined>(options.includeTests)
     expectType<boolean>(options.force)
     expectType<number | undefined>(options.retries)

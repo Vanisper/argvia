@@ -97,13 +97,17 @@ type MissingArgument<Args extends readonly Argument<string, unknown>[], Name ext
 type OptionValue<Field> = Field extends Option<infer Value> ? Value : undefined
 
 /** 校验通过后传入处理函数的值 */
-export interface CommandContext<
+export type CommandContext<
   Args extends readonly Argument<string, unknown>[],
   Options extends Readonly<Record<string, Option<unknown>>>,
-> {
+  Passthrough extends boolean = false,
+> = {
   readonly args: InferArguments<Args>
   readonly options: InferOptions<Options>
-}
+} & (Passthrough extends true ? {
+  /** 首个独立 -- 之后的原始 token，未输入分隔符时为空数组 */
+  readonly passthrough: readonly string[]
+} : unknown)
 
 /** 命令的帮助元信息 */
 export interface CommandMeta {
@@ -118,15 +122,21 @@ export interface Command extends CommandMeta {
 }
 
 /** 处理参数后执行业务的叶子命令定义 */
-export interface LeafDefinition<
+export type LeafDefinition<
   Args extends readonly Argument<string, unknown>[],
   Options extends Readonly<Record<string, Option<unknown>>>,
-> extends CommandMeta {
+  Passthrough extends boolean = false,
+> = CommandMeta & {
   readonly args?: Args
   readonly options?: Options
   readonly commands?: never
-  run: (context: NoInfer<CommandContext<Args, Options>>) => unknown
-}
+  run: (context: NoInfer<CommandContext<Args, Options, Passthrough>>) => unknown
+} & (Passthrough extends true ? {
+  /** 将首个独立 -- 之后的输入单独作为原始参数提供 */
+  readonly passthrough: true
+} : {
+  readonly passthrough?: false
+})
 
 /** 由对象键指定子命令名称的分组定义 */
 export interface GroupDefinition extends CommandMeta {
@@ -134,6 +144,7 @@ export interface GroupDefinition extends CommandMeta {
   readonly args?: never
   readonly options?: never
   readonly run?: never
+  readonly passthrough?: never
 }
 
 /** 输入错误的诊断，commandPath 包含根程序名 */
@@ -157,12 +168,14 @@ export interface RunConfig {
 export interface RuntimeContext {
   args: Record<string, unknown>
   options: Record<string, unknown>
+  passthrough?: readonly string[]
 }
 
 export interface ResolvedLeaf extends CommandMeta {
   readonly kind: 'leaf'
   readonly args: readonly Argument<string, unknown>[]
   readonly options: Readonly<Record<string, ResolvedOption>>
+  readonly passthrough: boolean
   readonly invoke: (context: RuntimeContext) => unknown
 }
 

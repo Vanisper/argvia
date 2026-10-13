@@ -8,7 +8,11 @@ import { createJavaRunCommand, initOptions, launchOptions, resolveLaunchConfig }
 export function verifyJavaRunTypes(): void {
   const runCommand = defineCommand({
     options: launchOptions,
-    run({ options }) {
+    passthrough: true,
+    run({ options, passthrough }) {
+      expectTypeOf(passthrough).toEqualTypeOf<readonly string[]>()
+      // @ts-expect-error 透传上下文只能读取
+      passthrough.push('changed')
       expectTypeOf(options).toEqualTypeOf<LaunchInput>()
       expectTypeOf(options.buildTool).toEqualTypeOf<'auto' | 'maven' | 'gradle' | undefined>()
       expectTypeOf(options.build).toEqualTypeOf<'auto' | 'none' | undefined>()
@@ -38,7 +42,7 @@ export function verifyJavaRunTypes(): void {
       // @ts-expect-error force 只属于 init
       expectTypeOf(options.force)
 
-      const resolved = resolveLaunchConfig(options, { includeTests: true }, { cwd: '/project' })
+      const resolved = resolveLaunchConfig(options, { includeTests: true }, { cwd: '/project' }, passthrough)
       expectTypeOf(resolved).toEqualTypeOf<LaunchConfig>()
       expectTypeOf(resolved.buildTool).toEqualTypeOf<'auto' | 'maven' | 'gradle'>()
       expectTypeOf(resolved.build).toEqualTypeOf<'auto' | 'none'>()
@@ -52,7 +56,9 @@ export function verifyJavaRunTypes(): void {
 
   const planCommand = defineCommand({
     options: launchOptions,
-    run({ options }) {
+    passthrough: true,
+    run({ options, passthrough }) {
+      expectTypeOf(passthrough).toEqualTypeOf<readonly string[]>()
       expectTypeOf(options).toEqualTypeOf<LaunchInput>()
       expectTypeOf(options.includeTests).toEqualTypeOf<boolean | undefined>()
       expectTypeOf(options.jvmArgs).toEqualTypeOf<string[]>()
@@ -66,7 +72,9 @@ export function verifyJavaRunTypes(): void {
 
   const initCommand = defineCommand({
     options: initOptions,
-    run({ options }) {
+    passthrough: true,
+    run({ options, passthrough }) {
+      expectTypeOf(passthrough).toEqualTypeOf<readonly string[]>()
       expectTypeOf(options.force).toEqualTypeOf<boolean>()
       expectTypeOf(options.includeTests).toEqualTypeOf<boolean | undefined>()
       expectTypeOf(options.jvmArgs).toEqualTypeOf<string[]>()

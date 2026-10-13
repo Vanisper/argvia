@@ -8,6 +8,7 @@ type InputToken
 export interface ScannedInput {
   readonly tokens: readonly InputToken[]
   readonly helpRequested: boolean
+  readonly passthrough: readonly string[]
 }
 
 export function isHelp(token: string): boolean {
@@ -22,6 +23,8 @@ export function scanInput(command: ResolvedLeaf, argv: readonly string[], option
   for (let index = 0; index < argv.length; index++) {
     const token = argv[index]!
     if (optionsEnabled && token === '--') {
+      if (command.passthrough)
+        return { tokens, helpRequested, passthrough: argv.slice(index + 1) }
       optionsEnabled = false
       continue
     }
@@ -53,5 +56,5 @@ export function scanInput(command: ResolvedLeaf, argv: readonly string[], option
     tokens.push({ kind: 'option', option, value })
   }
 
-  return { tokens, helpRequested }
+  return { tokens, helpRequested, passthrough: [] }
 }
