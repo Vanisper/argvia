@@ -2,15 +2,7 @@
 
 新基础分支为 `next`，其首提交没有父提交。历史 `main`、`explore/command-interface` 和 `feat/core-foundation` 保留作参考。
 
-## 直接使用 next
-
-在 GitHub 仓库设置中将默认分支设为 `next`，或在具备仓库管理权限的本地环境执行：
-
-```sh
-gh repo edit Vanisper/argvia --default-branch next
-```
-
-这一步不要求改名旧 main，也不需要将两个历史合并。
+2026-10-16 已核对远程 `HEAD` 指向 `next`，当前默认分支切换已完成。使用新主线不要求改名旧 main，也不需要将两个历史合并。
 
 ## 后续复用 main 名称
 
@@ -18,4 +10,4 @@ gh repo edit Vanisper/argvia --default-branch next
 
 新旧历史无共同祖先，切换通过分支管理完成，不通过 PR 合并或强制覆盖旧 main。
 
-CI 对所有推送分支执行，因此可在默认分支切换前验证 next。
+CI 对所有推送分支执行。

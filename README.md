@@ -35,13 +35,16 @@ vp run build
 vp run test
 ```
 
-`check` 包含格式、lint 和类型检查；`build` 通过 `vp pack` 构建各库的 ESM 与声明。当前尚无业务测试，测试入口允许空测试集；实际能力实现时补充对应验证。
+`check` 包含格式、lint 和类型检查；`test` 递归执行各包的测试；`build` 通过 `vp pack` 构建各库的 ESM 与声明。`ready` 按检查、测试、构建的顺序执行。当前尚无业务测试，各包配置暂时允许空测试集；实际能力实现时补充对应验证。
+
+安装时的 `prepare` 脚本通过 `vp config` 启用 Git hooks，提交前运行 `vp staged`，对暂存文件执行 `vp check --fix`。
 
 全部包保持 private。库构建和工具链使用 [Vite+](https://github.com/voidzero-dev/vite-plus)，不额外引入独立任务调度器。
 
 ## 设计与分支
 
 - [组成与抽象边界](docs/architecture.md)
+- [Vite+ 模板对照与工程约定](docs/toolchain.md)
 - [开发顺序](docs/roadmap.md)
 - [历史参考](docs/references.md)
 - [默认分支切换](docs/branch-transition.md)
