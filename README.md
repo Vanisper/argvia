@@ -4,7 +4,7 @@
 
 本分支从 Vite+ 官方 monorepo 模板重新初始化，拥有独立提交历史。历史分支和归档继续作为研究参考，见 [参考资料](docs/references.md)。
 
-第一轮已建立 parser 的独立解析与准备、完成流程，core 仍为空骨架。接口保持 private，后续依据真实 CLI 场景评估使用体验。
+parser 已建立独立解析与准备、完成流程，core 已建立单命令输入、帮助、版本与 handler 调用模型。接口保持 private，后续依据真实 CLI 场景评估使用体验。
 
 ## 工作区
 
@@ -35,7 +35,7 @@ vp run build
 vp run test
 ```
 
-`check` 包含格式、lint 和类型检查；`test` 递归执行各包的测试；`build` 通过 `vp pack` 构建各库的 ESM 与声明。`ready` 按检查、测试、构建的顺序执行。parser 已有规范行为与类型验证；core 暂时允许空测试集。
+`check` 包含格式、lint 和类型检查；`test` 递归执行各包的测试；`build` 通过 `vp pack` 构建各库的 ESM 与声明。`ready` 按检查、测试、构建的顺序执行。两个包均包含行为与类型验证。
 
 安装时的 `prepare` 脚本通过 `vp config` 启用 Git hooks，提交前运行 `vp staged`，对暂存文件执行 `vp check --fix`。
 
@@ -44,8 +44,10 @@ vp run test
 ## 设计与分支
 
 - [组成与抽象边界](docs/architecture.md)
-- [第一轮解析契约](docs/parser-contract.md)
+- [Parser 算法规范与当前契约](packages/parser/docs/README.md)
 - [Parser 使用示例](packages/parser/README.md)
+- [Core 使用示例](packages/core/README.md)
+- [单命令行为契约](packages/core/docs/command-contract.md)
 - [Vite+ 模板对照与工程约定](docs/toolchain.md)
 - [开发顺序](docs/roadmap.md)
 - [历史参考](docs/references.md)

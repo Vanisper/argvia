@@ -28,10 +28,17 @@ vp create vite:monorepo --directory vp-monorepo-reference --package-manager pnpm
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | 用 parser/core 替代 website/utils 示例                   | 当前研究方向是 CLI 基础库；不增加示例应用或工具包占位                                                  |
 | 包内 `types: []`，仅使用 ECMAScript lib                  | 避免普通源码隐式依赖 Node 或浏览器全局；开发依赖中的 Node 类型供工具配置使用，不决定产品的宿主适配形式 |
-| core 暂设 `test.passWithNoTests: true`                   | core 仍为空骨架；parser 第一轮已加入测试并移除此项                                                     |
 | catalog 使用精确版本，保留 `.node-version` 与 CI         | 固定当前可复现的工程基线；Node engines 与 Vite+ 1.2.0 的支持范围一致                                   |
 | 包保持 private，不复制模板的作者、仓库、许可证和发布工具 | 尚未确定发布契约，不沿用示例元数据                                                                     |
 
 这些差异不预设后续 API 风格、运行时兼容范围或宿主适配包的划分。
 
-第一轮实现后，parser 的 TypeScript `include` 同时覆盖 `src` 与 `tests`，让测试中的类型断言也进入检查；源码仍保留 `types: []`。
+两个包的 TypeScript `include` 同时覆盖 `src` 与 `tests`，让测试中的类型断言也进入检查；源码仍保留 `types: []`。实现能力后均已移除空测试豁免。
+
+## 工作区源码与构建入口
+
+core 通过公开包名依赖 parser，检查与测试在库构建之前执行。两包使用 Vite+ 内置的 `pack.exports.devExports: "argvia-source"`，由工具维护开发源码条件和默认 dist 导出。
+
+TypeScript 的 `customConditions` 及 Vite、Vitest SSR 的解析条件启用 `argvia-source`，让冷检出的工作区可以直接检查和测试源码。没有该条件的消费者仍从 `dist` 导入；自动生成的 `publishConfig.exports` 也只指向构建产物。
+
+core 的构建产物保持对 `@argvia/parser` 的外部依赖，不内联一份解析实现。源码验证不依赖旧 dist，产物验证另用默认条件的独立消费者检查 JS 和声明。

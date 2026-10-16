@@ -1,7 +1,7 @@
 export { createParser } from "./parser.ts";
 export { OptionSpecError, ParseError, ValueParserContractError } from "./errors.ts";
 export type { ParseErrorCode, ParseErrorDetails } from "./errors.ts";
-export { failure, success, values } from "./values.ts";
+export { decodeValue, failure, snapshotValueParser, success, values } from "./values.ts";
 export type {
   CheckedOptions,
   InferValue,

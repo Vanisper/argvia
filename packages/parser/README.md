@@ -1,6 +1,6 @@
 # @argvia/parser
 
-独立解析已分词的 `argv`，保留参数归属、出现历史和输入来源。第一轮接口保持 private，不承诺历史原型兼容。完整行为见 [解析契约](../../docs/parser-contract.md)。
+独立解析已分词的 `argv`，保留参数归属、出现历史和输入来源。第一轮接口保持 private，不承诺历史原型兼容。完整行为见 [解析契约](docs/contract.md)。
 
 ## 独立解析
 
@@ -45,11 +45,17 @@ if (prepared.provided.help && prepared.values.help === true) {
 
 `values` 提供 string、integer、boolean、enumeration、union、normalized 工厂，也可直接提供 `ValueParser<T>`。正常的值域拒绝返回 `{ ok: false, expected }`；程序异常直接传播。类型化默认值不重新解析，调用者应将默认对象视为只读。
 
+需要将同一值协议用于其他字段时，可公开调用 `snapshotValueParser` 固定回调引用，再用 `decodeValue(parser, raw)` 获得 normalized 与解析结果；core 的命名位置参数也使用这条路径。
+
 缺席且无默认值的非追加选项省略 `values` 中的键。合法 `undefined` 用 `Object.hasOwn(result.values, name)` 或对应 `records` 区分。`provided` 表示显式出现，不因默认值而变为 true。
 
 用法错误为 `ParseError`，通过 `code` 读取类别与结构化上下文。`OptionSpecError` 与 `ValueParserContractError` 分别表示定义错误和值回调返回协议错误。
 
 结果提供归约后的 `records`、完整 `occurrences`、`positionalTokens` 与 `terminatorIndex`；原始值不会被归一化覆盖。容器和记录浅冻结，不深复制解析值或默认对象。
+
+## 文档
+
+[文档索引](docs/README.md) 汇总归档算法规范、当前解析契约及对应源码和测试。
 
 ## 开发
 
