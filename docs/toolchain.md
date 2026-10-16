@@ -37,8 +37,8 @@ vp create vite:monorepo --directory vp-monorepo-reference --package-manager pnpm
 
 ## 工作区源码与构建入口
 
-core 通过公开包名依赖 parser，检查与测试在库构建之前执行。两包使用 Vite+ 内置的 `pack.exports.devExports: "argvia-source"`，由工具维护开发源码条件和默认 dist 导出。
+core 通过公开包名依赖 parser，检查与测试在库构建之前执行。两包使用 Vite+ 内置的 `pack.exports.devExports: true`，工作区的 `exports` 直接指向源码，自动生成的 `publishConfig.exports` 指向 dist。
 
-TypeScript 的 `customConditions` 及 Vite、Vitest SSR 的解析条件启用 `argvia-source`，让冷检出的工作区可以直接检查和测试源码。没有该条件的消费者仍从 `dist` 导入；自动生成的 `publishConfig.exports` 也只指向构建产物。
+工作区检查、测试和普通包名导入都读取源码，不需要额外的 TypeScript 或 Vite 解析条件。pnpm 打包时应用 `publishConfig.exports`，包消费者读取构建产物。
 
-core 的构建产物保持对 `@argvia/parser` 的外部依赖，不内联一份解析实现。源码验证不依赖旧 dist，产物验证另用默认条件的独立消费者检查 JS 和声明。
+core 的构建产物保持对 `@argvia/parser` 的外部依赖，不内联一份解析实现。源码验证不依赖旧 dist，产物验证使用实际打包文件的独立消费者检查 JS 和声明。

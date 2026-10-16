@@ -5,7 +5,6 @@
     "moduleDetection": "force",
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "customConditions": ["argvia-source"],
     "resolveJsonModule": true,
     "types": [],
     "strict": true,
