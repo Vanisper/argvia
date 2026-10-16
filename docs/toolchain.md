@@ -28,8 +28,10 @@ vp create vite:monorepo --directory vp-monorepo-reference --package-manager pnpm
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | 用 parser/core 替代 website/utils 示例                   | 当前研究方向是 CLI 基础库；不增加示例应用或工具包占位                                                  |
 | 包内 `types: []`，仅使用 ECMAScript lib                  | 避免普通源码隐式依赖 Node 或浏览器全局；开发依赖中的 Node 类型供工具配置使用，不决定产品的宿主适配形式 |
-| 各包暂设 `test.passWithNoTests: true`                    | 当前仅为空骨架，没有业务测试；实现能力时补充测试并重新评估此项                                         |
+| core 暂设 `test.passWithNoTests: true`                   | core 仍为空骨架；parser 第一轮已加入测试并移除此项                                                     |
 | catalog 使用精确版本，保留 `.node-version` 与 CI         | 固定当前可复现的工程基线；Node engines 与 Vite+ 1.2.0 的支持范围一致                                   |
 | 包保持 private，不复制模板的作者、仓库、许可证和发布工具 | 尚未确定发布契约，不沿用示例元数据                                                                     |
 
 这些差异不预设后续 API 风格、运行时兼容范围或宿主适配包的划分。
+
+第一轮实现后，parser 的 TypeScript `include` 同时覆盖 `src` 与 `tests`，让测试中的类型断言也进入检查；源码仍保留 `types: []`。

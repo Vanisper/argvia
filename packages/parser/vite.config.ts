@@ -10,8 +10,4 @@ export default defineConfig({
     },
     exports: true,
   },
-  test: {
-    // 初期空骨架尚无业务测试。
-    passWithNoTests: true,
-  },
 });
