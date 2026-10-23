@@ -1,6 +1,6 @@
 import { ParseError } from "@argvia/parser";
-import { ArgumentError, RouteError } from "../src/index.ts";
-import { createWorkspace } from "./workspace.ts";
+import { ArgumentError, RouteError } from "@argvia/core";
+import { createWorkspace } from "./app.ts";
 
 const app = createWorkspace({
   build: ({ entry, mode, tags }) => JSON.stringify({ operation: "build", entry, mode, tags }),

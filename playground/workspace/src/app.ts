@@ -1,6 +1,6 @@
 import { values } from "@argvia/parser";
 
-import { createCommand, createGroup, type NodeDescription } from "../src/index.ts";
+import { createCommand, createGroup, type NodeDescription } from "@argvia/core";
 
 export interface WorkspaceServices {
   build(input: {

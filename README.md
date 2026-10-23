@@ -8,6 +8,7 @@
 | ----------------- | ------------------------------------------------------ |
 | `packages/parser` | `@argvia/parser`，选项识别、值绑定、值协议与来源记录   |
 | `packages/core`   | `@argvia/core`，命令树、显式路由、定义快照与分阶段调用 |
+| `playground`      | 使用公开包接口构建的独立应用示例                       |
 | `docs`            | 架构、接口与工程约定                                   |
 
 命令通过 `createCommand` 定义，通过 `createGroup` 组合。每个节点公开只读的 `definition`；调用者可以读取整棵定义树，也可以使用 `prepare → complete → execute` 处理一次输入。帮助、版本等能力由应用使用普通选项与元数据构建。
@@ -27,8 +28,20 @@ vp run ready
 
 `ready` 依次执行格式、lint、类型检查、各包测试及 ESM 与声明构建。也可单独运行 `vp run check`、`vp run test`、`vp run build`。安装时启用 Git hooks，提交前对暂存文件执行检查。
 
+## 运行应用示例
+
+在仓库根目录运行 [Workspace 示例](playground/workspace/README.md)：
+
+```sh
+vp run playground --help
+vp run playground assets build app.ts --mode=safe --tag=ci
+```
+
+示例组合多级命令、普通帮助与版本选项及注入服务；build 输出 JSON 执行计划，不实际编译文件。更多用法和目录说明见 [Playground](playground/README.md)。
+
 ## 文档
 
+- [Playground 应用示例](playground/README.md)
 - [Core 使用说明](packages/core/README.md)
 - [命令组合与调用契约](packages/core/docs/command-contract.md)
 - [Parser 使用说明](packages/parser/README.md)

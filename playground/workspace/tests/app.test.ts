@@ -1,12 +1,8 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import { ParseError } from "@argvia/parser";
 
-import {
-  createWorkspace,
-  renderDescription,
-  type WorkspaceServices,
-} from "../examples/workspace.ts";
-import { ArgumentError, createCommand } from "../src/index.ts";
+import { createWorkspace, renderDescription, type WorkspaceServices } from "../src/app.ts";
+import { ArgumentError, createCommand } from "@argvia/core";
 
 function workspace() {
   const build = vi.fn<WorkspaceServices["build"]>(async (input) => `built:${input.entry}`);

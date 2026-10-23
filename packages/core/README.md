@@ -107,18 +107,18 @@ await run(["build", "--help"]); // entry 未提供也可以展示定义
 
 ## 可运行示例
 
-[workspace.ts](examples/workspace.ts) 组合 `tool → assets → build/inspect`，通过公开接口实现帮助与版本响应，并通过应用工厂注入业务服务。[run.mjs](examples/run.mjs) 提供 Node 入口，负责读取参数、输出和退出状态。
+[Workspace 应用示例](../../playground/workspace/README.md) 作为独立工作区包，通过公开包名使用 core 与 parser，组合 `tool → assets → build/inspect`。应用工厂注入业务服务，普通选项与定义描述实现帮助及版本响应，Node 入口负责参数、输出和退出状态。
 
-在本包目录运行：
+在仓库根目录运行：
 
 ```sh
-vp run example --help
-vp run example assets build --help
-vp run example assets build app.ts --mode=safe --tag=ci
-vp run example assets inspect app.ts
+vp run playground --help
+vp run playground assets build --help
+vp run playground assets build app.ts --mode=safe --tag=ci
+vp run playground assets inspect app.ts
 ```
 
-示例服务返回操作信息，输入解析和应用控制逻辑由测试覆盖。将服务替换为实际业务即可复用同一命令定义。
+示例服务输出 JSON 执行计划，不实际编译或检查文件；应用包内的测试覆盖输入解析、控制逻辑与服务调用。将服务替换为实际业务即可复用同一命令定义。
 
 ## 开发
 

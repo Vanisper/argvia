@@ -4,23 +4,26 @@
 
 ## 工作区与命令
 
-| 范围     | 约定                                                                               |
-| -------- | ---------------------------------------------------------------------------------- |
-| 工作区   | `apps/*`、`packages/*`、`tools/*`；核心库位于 `packages/parser` 与 `packages/core` |
-| 包管理   | `devEngines.packageManager` 管理 pnpm，版本通过 catalog 统一                       |
-| 检查     | 根 `vp check` 检查格式、lint 与类型                                                |
-| 测试     | 根 `vp run test` 进入各包执行测试                                                  |
-| 构建     | 根 `vp run build` 通过 `vp pack` 构建 ESM 与声明                                   |
-| 完整验证 | `vp run ready` 依次检查、测试和构建                                                |
-| 提交检查 | `prepare: vp config` 安装 hooks，提交前对暂存文件执行 `vp check --fix`             |
+| 范围     | 约定                                                                                               |
+| -------- | -------------------------------------------------------------------------------------------------- |
+| 工作区   | `apps/*`、`packages/*`、`tools/*`、`playground/*`；核心库位于 `packages/parser` 与 `packages/core` |
+| 包管理   | `devEngines.packageManager` 管理 pnpm，版本通过 catalog 统一                                       |
+| 检查     | 根 `vp check` 检查格式、lint 与类型                                                                |
+| 测试     | 根 `vp run test` 进入各包执行测试                                                                  |
+| 构建     | 根 `vp run build` 通过 `vp pack` 构建 ESM 与声明                                                   |
+| 示例     | 根 `vp run playground` 运行 Workspace 应用；在应用目录用 `vp run start`                            |
+| 完整验证 | `vp run ready` 依次检查、测试和构建                                                                |
+| 提交检查 | `prepare: vp config` 安装 hooks，提交前对暂存文件执行 `vp check --fix`                             |
 
 根 `vite.config.ts` 管理格式、lint、类型检查及任务缓存；包内配置管理库构建和测试。监听库构建时，在对应包运行 `vp run dev`。
 
+`playground/*` 中的应用直接通过公开包名使用工作区源码，无需先构建 dist。`vp run playground` 后的参数直接传给 Workspace 应用，示例用法见其 [README](../playground/workspace/README.md)。应用测试纳入根目录的递归测试任务。
+
 ## 类型与运行环境
 
-包的 `types: []` 和 ECMAScript lib 约束普通源码的可用全局。Node 类型用于工程配置，不决定产品宿主能力的发布位置。包内 `include` 覆盖实现与测试，使类型断言进入工程检查。
+parser 与 core 的 `types: []` 和 ECMAScript lib 约束普通源码的可用全局。Node 类型用于工程配置及 playground 的 Node 宿主，不决定核心库的运行平台。包内 `include` 覆盖实现与测试，使类型断言进入工程检查。
 
-两个包保持 private。发布元数据、许可证、消费者运行时范围及发布流程需要在公开发布前明确。
+核心库与 playground 应用保持 private。库的发布元数据、许可证、消费者运行时范围及发布流程需要在公开发布前明确。
 
 ## 工作区入口与构建产物
 

@@ -12,5 +12,11 @@ export default defineConfig({
   },
   run: {
     cache: true,
+    tasks: {
+      playground: {
+        command: "vp run @argvia/playground-workspace#start",
+        cache: false,
+      },
+    },
   },
 });

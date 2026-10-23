@@ -15,6 +15,12 @@ core 通过公开包名依赖 parser，parser 不依赖 core。位置参数复�
 
 宿主能力的发布位置由独立消费、依赖和平台需求决定。当前应用可以通过闭包注入业务与宿主服务；开发工具链使用 Node 不构成运行时支持范围的承诺。
 
+## 应用示例
+
+`playground/*` 是独立的私有工作区包，通过 `@argvia/core` 与 `@argvia/parser` 的公开入口消费库能力。示例的应用逻辑、宿主入口及应用测试放在同一包内。
+
+[Workspace 示例](../playground/workspace/README.md) 的 [app.ts](../playground/workspace/src/app.ts) 定义命令树、普通控制选项和服务接口；[main.ts](../playground/workspace/src/main.ts) 注入演示服务并处理进程参数、终端输出和退出状态。命令定义可在测试中注入不同服务，宿主策略不进入库实现。
+
 ## 定义模型
 
 `createCommand` 创建带 handler 的叶子命令，`createGroup` 通过子节点数组创建分组。分组可以声明本地选项；每个节点的选项作用域独立。共享字段采用普通模块和声明复用，不产生运行时继承。

@@ -213,6 +213,25 @@ importers:
         specifier: 'catalog:'
         version: 1.2.0(@types/node@24.19.2)(@vitest/ui@5.0.4)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1)
 
+  playground/workspace:
+    dependencies:
+      '@argvia/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@argvia/parser':
+        specifier: workspace:*
+        version: link:../../packages/parser
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vite-plus:
+        specifier: 'catalog:'
+        version: 1.2.0(@types/node@24.19.2)(@vitest/ui@5.0.4)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1)
+
 packages:
 
   '@babel/code-frame@7.29.7':
