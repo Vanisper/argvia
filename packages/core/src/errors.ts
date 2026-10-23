@@ -40,3 +40,33 @@ export class ArgumentError extends Error implements ArgumentErrorDetails {
     Object.assign(this, this.details);
   }
 }
+
+export type RouteErrorCode = "UnknownCommand" | "MissingCommand";
+
+export interface RouteErrorDetails {
+  readonly path: readonly string[];
+  readonly token?: string;
+  readonly index?: number;
+  readonly commands: readonly string[];
+}
+
+/** 显式命令路径无法匹配，或执行仍停留在分组 */
+export class RouteError extends Error implements RouteErrorDetails {
+  readonly code: RouteErrorCode;
+  readonly details: Readonly<RouteErrorDetails>;
+  readonly path: readonly string[];
+  readonly token?: string;
+  readonly index?: number;
+  readonly commands: readonly string[];
+
+  constructor(code: RouteErrorCode, message: string, details: RouteErrorDetails) {
+    super(message);
+    this.name = "RouteError";
+    this.code = code;
+    this.path = Object.freeze([...details.path]);
+    this.commands = Object.freeze([...details.commands]);
+    if (details.token !== undefined) this.token = details.token;
+    if (details.index !== undefined) this.index = details.index;
+    this.details = Object.freeze({ ...details, path: this.path, commands: this.commands });
+  }
+}

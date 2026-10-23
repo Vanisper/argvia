@@ -1,15 +1,11 @@
-# 历史参考
+# 参考资料
 
-以下分支只提供研究依据，其代码与工程配置不作为新主线的默认实现。
+当前 API 与行为由源码及包内契约定义。以下固定提交和归档保留研究依据：
 
-| 分支                                                                                                          | 记录的提交                                 |
-| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| [main](https://github.com/Vanisper/argvia/tree/d3dd2438219032cd37c975a2a3f3fb4d58593d05)                      | `d3dd2438219032cd37c975a2a3f3fb4d58593d05` |
-| [explore/command-interface](https://github.com/Vanisper/argvia/tree/f7780e8683bfa477443f6cabb798067d8f203d6b) | `f7780e8683bfa477443f6cabb798067d8f203d6b` |
-| [feat/core-foundation](https://github.com/Vanisper/argvia/tree/337a59340c558c746158fbdeed2cf75532ed4862)      | `337a59340c558c746158fbdeed2cf75532ed4862` |
+| 资料               | 固定版本                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| 定位与类型实验     | [d3dd243](https://github.com/Vanisper/argvia/tree/d3dd2438219032cd37c975a2a3f3fb4d58593d05) |
+| 命令接口实验       | [f7780e8](https://github.com/Vanisper/argvia/tree/f7780e8683bfa477443f6cabb798067d8f203d6b) |
+| CLI 组合与应用样本 | [337a593](https://github.com/Vanisper/argvia/tree/337a59340c558c746158fbdeed2cf75532ed4862) |
 
-相关归档包括《CLI 选项与参数解析规范》、`cli-kv-parser-source.zip` 和 `argvia-source.zip`。归档用于研究算法、边界和验证资产，后续采用的行为以新主线中明确的契约为准。
-
-算法规范全文现收录于 [parser/docs/algorithm.md](../packages/parser/docs/algorithm.md)，当前实现的约定与差异见 [parser 文档索引](../packages/parser/docs/README.md)。
-
-初始化使用 Vite+ 1.2.0 的官方 `vite:monorepo` 模板，随后移除示例 website/utils，整理为 parser/core 工作区。pnpm 锁文件固定实际依赖版本。
+《CLI 选项与参数解析规范》原文收录于 [parser 算法规范](../packages/parser/docs/algorithm.md)。相关源码归档包括 `cli-kv-parser-source.zip` 和 `argvia-source.zip`。使用当前实现时，以 [parser 契约](../packages/parser/docs/contract.md)和 [core 契约](../packages/core/docs/command-contract.md)为准。

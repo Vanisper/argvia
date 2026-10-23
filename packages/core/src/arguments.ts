@@ -1,10 +1,11 @@
 import { decodeValue, snapshotValueParser, ValueParserContractError } from "@argvia/parser";
 import type { PositionalToken, ValueParser } from "@argvia/parser";
+import { validateName } from "./definition.ts";
 import { ArgumentError, CommandSpecError } from "./errors.ts";
 import type {
+  ArgumentDescriptions,
   ArgumentSpec,
   ArgumentValueRecord,
-  HelpArgument,
   ParsedPositionals,
 } from "./types.ts";
 
@@ -17,7 +18,7 @@ interface RegisteredArgument {
 }
 
 interface CompiledArguments<A extends readonly ArgumentSpec[]> {
-  readonly helpArguments: readonly HelpArgument[];
+  readonly definitions: ArgumentDescriptions<A>;
   readonly parse: (tokens: readonly PositionalToken[]) => ParsedPositionals<A>;
 }
 
@@ -44,9 +45,7 @@ export function compileArguments<const A extends readonly ArgumentSpec[]>(
     }
 
     const { name, description, required, variadic } = definition;
-    if (typeof name !== "string" || name.length === 0) {
-      invalid("An argument name must be a nonempty string.");
-    }
+    validateName(name, `${field}.name`);
     if (names.has(name)) invalid(`Duplicate argument name ${JSON.stringify(name)}.`);
     if (description !== undefined && typeof description !== "string") {
       invalid("An argument description must be a string.");
@@ -95,16 +94,6 @@ export function compileArguments<const A extends readonly ArgumentSpec[]>(
   }
 
   const arguments_ = Object.freeze(registered);
-  const helpArguments = Object.freeze(
-    arguments_.map(({ name, description, required, variadic }) =>
-      Object.freeze({
-        name,
-        ...(description === undefined ? {} : { description }),
-        required,
-        variadic,
-      }),
-    ),
-  );
 
   function parse(tokens: readonly PositionalToken[]): ParsedPositionals<A> {
     for (let index = 0; index < arguments_.length; index += 1) {
@@ -182,5 +171,8 @@ export function compileArguments<const A extends readonly ArgumentSpec[]>(
     }) as ParsedPositionals<A>;
   }
 
-  return Object.freeze({ helpArguments, parse });
+  return Object.freeze({
+    definitions: arguments_ as unknown as ArgumentDescriptions<A>,
+    parse,
+  });
 }

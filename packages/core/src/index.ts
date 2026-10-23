@@ -1,8 +1,14 @@
 export { createCommand } from "./command.ts";
-export { renderHelp } from "./help.ts";
-export { ArgumentError, CommandSpecError } from "./errors.ts";
-export type { ArgumentErrorCode, ArgumentErrorDetails } from "./errors.ts";
+export { createGroup } from "./group.ts";
+export { ArgumentError, CommandSpecError, RouteError } from "./errors.ts";
 export type {
+  ArgumentErrorCode,
+  ArgumentErrorDetails,
+  RouteErrorCode,
+  RouteErrorDetails,
+} from "./errors.ts";
+export type {
+  ArgumentDescriptions,
   ArgumentProvided,
   ArgumentRecords,
   ArgumentSpec,
@@ -11,14 +17,25 @@ export type {
   ArgumentValues,
   Command,
   CommandDefinition,
-  CommandExecuteResult,
+  CommandDescription,
+  CommandGroup,
   CommandInput,
+  CommandNode,
   CommandOption,
-  CommandParseResult,
-  HelpArgument,
-  HelpDocument,
-  HelpOption,
-  HelpRequest,
+  ExecutedCommand,
+  ExecutedOf,
+  GroupDefinition,
+  GroupDescription,
+  NodeDescription,
+  NodeMetadata,
+  OptionDescriptions,
+  ParsedCommand,
+  ParsedGroup,
+  ParsedNode,
+  ParsedOf,
   ParsedPositionals,
-  VersionRequest,
+  PreparedCommand,
+  PreparedGroup,
+  PreparedNode,
+  PreparedOf,
 } from "./types.ts";

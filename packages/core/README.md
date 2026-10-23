@@ -1,63 +1,125 @@
 # @argvia/core
 
-组织一个已经选定的命令：复用 parser 解释选项，分配命名位置参数，响应帮助与版本，并调用类型化 handler。第二轮暂不包含命令树、路由或进程适配，接口保持 private。
+用统一定义组织命令树、读取 CLI 结构，并分阶段解析与执行输入。选项规则和值协议由 `@argvia/parser` 提供。
 
 ## 定义与执行
 
 ```ts
-import { createCommand, renderHelp } from "@argvia/core";
+import { createCommand, createGroup, type CommandOption } from "@argvia/core";
 import { values } from "@argvia/parser";
 
-const command = createCommand({
-  name: "serve",
-  description: "启动服务",
-  version: "0.1.0",
+const common = [
+  { long: "help", short: "h", parse: values.boolean(), defaultWhenBare: true },
+] as const satisfies readonly CommandOption[];
+
+const build = createCommand({
+  name: "build",
+  description: "构建项目",
   options: [
-    {
-      long: "port",
-      short: "p",
-      parse: values.integer({ min: 1, max: 65535 }),
-      defaultWhenAbsent: 8080,
-      description: "监听端口",
-      valueName: "port",
-    },
+    ...common,
+    { long: "target", parse: values.enumeration(["web", "server"]), defaultWhenAbsent: "web" },
   ],
-  arguments: [
-    { name: "entry", parse: values.string(), required: true, description: "应用入口" },
-    { name: "args", parse: values.string(), variadic: true, description: "应用参数" },
-  ],
-  handler({ options, arguments: args }) {
-    // 业务依赖可通过闭包注入；返回值由调用者使用
-    return { port: options.port, entry: args.entry, args: args.args };
+  arguments: [{ name: "entry", parse: values.string(), required: true }],
+  handler(input) {
+    return { entry: input.arguments.entry, target: input.options.target };
   },
 });
 
-const result = await command.execute(["--port", "9000", "app.ts", "--", "--debug"]);
-if (result.kind === "executed") {
-  // result.value: { port: number; entry: string; args: readonly string[] }
-}
+const app = createGroup({
+  name: "tool",
+  description: "项目工具",
+  metadata: { version: "1.0.0" },
+  options: common,
+  commands: [build],
+});
 
-const help = command.parse(["--help"]);
-if (help.kind === "help") {
-  const text = renderHelp(help.document);
-  // 调用者决定如何显示 text
+const result = await app.execute(["build", "src/index.ts", "--target=server"]);
+// result.kind: "executed"
+// result.value: { entry: string; target: "web" | "server" }
+// result.path: ["tool", "build"]
+```
+
+输入不包含程序名。分组通过连续的子命令名前缀选择节点，选项和位置输入属于选中的节点。`common` 是声明复用；分组上的选项不会自动进入子命令。
+
+`execute` 等待同步或异步 handler，返回原始业务值。它不读取进程参数、写入终端或设置退出码。
+
+## 结构化读取
+
+`app.definition` 是可遍历的只读定义树。它包含节点种类、名称、描述、普通元数据、选项、位置参数、解析配置和子节点描述；不包含 handler。
+
+```ts
+for (const child of app.definition.commands) {
+  const names = child.options.map((option) => `--${option.long}`);
+  // 调用方可以生成帮助、文档或其他展示内容
+  void names;
 }
 ```
 
-输入不包含程序名；core 不读取 `process.argv`，不输出、不退出进程。`execute` 等待同步或异步 handler，数字结果也只作为普通业务值保留。
+读取定义不执行值回调。定义中的默认值与解析器可能包含对象和函数，因此这个模型不承诺 JSON 序列化。容器与回调引用固定，对象值本身保持调用方提供的引用。
 
-`parse` 返回 `input`、`help` 或 `version` 请求，不调用 handler。`execute` 内部只解析一次；分别调用 parse 与 execute 是两次独立操作，需要检查完整输入时直接使用 parse 的结果。
+## 分阶段处理
 
-## 内建请求与位置参数
+帮助只是上例声明的普通选项。调用方可以在完成必填检查之前消费它：
 
-默认注册 `--help/-h`，`help: false` 关闭；存在版本字符串时注册 `--version/-V`。名称冲突会被拒绝。`--help=false` 不触发帮助，两种请求同时为 true 时帮助优先。
+```ts
+import type { NodeDescription } from "@argvia/core";
 
-内建请求依据真实绑定事实判定。帮助可以跳过选项必填、位置数量与位置值解析；未知选项、非法选项值等错误仍即时报告。终止符后的 `--help` 是位置参数，`--name=--help` 是 name 的值。
+function summary(definition: NodeDescription, path: readonly string[]): string {
+  const lines = [path.join(" "), definition.description ?? ""];
+  if (definition.kind === "group") {
+    lines.push(...definition.commands.map((child) => `${child.name}  ${child.description ?? ""}`));
+  }
+  lines.push(
+    ...definition.options.map((option) => `--${option.long}  ${option.description ?? ""}`),
+  );
+  return lines.filter(Boolean).join("\n");
+}
 
-位置参数必须按声明顺序使用，必填在可选之前，唯一的 variadic 只能在末尾。不会根据值是否能解析而重新分配，也不会从选项已消费的输入中预留位置值。
+async function run(argv: readonly string[]) {
+  const prepared = app.prepare(argv);
+  if (prepared.options.help === true) {
+    return { text: summary(prepared.definition, prepared.path) };
+  }
 
-`input.options` 与 `input.arguments` 提供便利值，`input.source` 保留原始值、归一化值、出现与位置记录。业务值和来源都不包含内部 help/version 字段；可选字段缺席省略，变长字段缺席为空数组。
+  const parsed = prepared.complete();
+  if (parsed.kind === "group") {
+    return {
+      text: `请选择命令：${parsed.definition.commands.map((child) => child.name).join(", ")}`,
+    };
+  }
+  return parsed.execute();
+}
 
-## 契约与开发
+await run(["build", "--help"]); // entry 未提供也可以展示定义
+```
 
-详细规则见 [单命令契约](docs/command-contract.md)，底层算法见 [parser 文档](../parser/docs/README.md)。运行 `vp run check`、`vp run test`、`vp run build`；仓库根目录用 `vp run ready` 验证全部工程。普通源码入口保持宿主无关。
+`prepare` 已完成选项绑定、值转换、默认值和重复处理；输入错误仍会即时报告。`complete` 再检查选项必填、位置数量并解码位置值；重复完成同一准备结果不会重复解析，失败也会保留。完成后的命令可执行，每次执行独立调用 handler。
+
+`node.parse(argv)` 是准备并完成的便捷入口。保留完成结果再调用其 `execute()` 可以继续同一次解析；再次调用 `node.execute(argv)` 则会重新解析。
+
+## 来源与错误
+
+`input.options` 与 `input.arguments` 提供值，`input.source` 保留显式提供状态、原文、归一化值和出现记录。所有下标相对本次入口收到的完整 argv，包括嵌套路由后的选项、位置参数和输入错误。
+
+选项输入错误为 parser 的 `ParseError`，位置错误为 `ArgumentError`，路由错误为 `RouteError`。定义错误与程序异常分别处理，handler 和值回调抛出的异常原样传播。
+
+完整规则见 [命令组合与调用契约](docs/command-contract.md)，公共模型见 [接口说明](../../docs/interfaces.md)。
+
+## 可运行示例
+
+[workspace.ts](examples/workspace.ts) 组合 `tool → assets → build/inspect`，通过公开接口实现帮助与版本响应，并通过应用工厂注入业务服务。[run.mjs](examples/run.mjs) 提供 Node 入口，负责读取参数、输出和退出状态。
+
+在本包目录运行：
+
+```sh
+vp run example --help
+vp run example assets build --help
+vp run example assets build app.ts --mode=safe --tag=ci
+vp run example assets inspect app.ts
+```
+
+示例服务返回操作信息，输入解析和应用控制逻辑由测试覆盖。将服务替换为实际业务即可复用同一命令定义。
+
+## 开发
+
+在本包运行 `vp run check`、`vp run test`、`vp run build`；仓库根目录使用 `vp run ready`。源码保持宿主无关，包目前为 private。

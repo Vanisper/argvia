@@ -1,24 +1,22 @@
 # Argvia
 
-面向 TypeScript CLI 的可组合基础能力。
-
-本分支从 Vite+ 官方 monorepo 模板重新初始化，拥有独立提交历史。历史分支和归档继续作为研究参考，见 [参考资料](docs/references.md)。
-
-parser 已建立独立解析与准备、完成流程，core 已建立单命令输入、帮助、版本与 handler 调用模型。接口保持 private，后续依据真实 CLI 场景评估使用体验。
+面向 TypeScript CLI 的可组合基础能力。一份定义连接输入解析、命令组合、结构化读取与类型化执行。
 
 ## 工作区
 
-| 路径              | 定位                                                     |
-| ----------------- | -------------------------------------------------------- |
-| `packages/parser` | `@argvia/parser`，研究 argv 识别、绑定、值解析与来源记录 |
-| `packages/core`   | `@argvia/core`，组织命令定义、路由、帮助和调用流程       |
-| `docs`            | 抽象边界、后续步骤与历史参考                             |
+| 路径              | 定位                                                   |
+| ----------------- | ------------------------------------------------------ |
+| `packages/parser` | `@argvia/parser`，选项识别、值绑定、值协议与来源记录   |
+| `packages/core`   | `@argvia/core`，命令树、显式路由、定义快照与分阶段调用 |
+| `docs`            | 架构、接口与工程约定                                   |
 
-宿主运行适配需要独立的职责边界；它最终采用 core 子入口、独立包还是其他组合方式，待实际需求验证。目前不创建 `@argvia/node`。
+命令通过 `createCommand` 定义，通过 `createGroup` 组合。每个节点公开只读的 `definition`；调用者可以读取整棵定义树，也可以使用 `prepare → complete → execute` 处理一次输入。帮助、版本等能力由应用使用普通选项与元数据构建。
+
+两个包的普通入口接收显式数据，保持宿主无关。配置合并、业务规则与进程操作由应用组织。当前包保持 private。
 
 ## 开发
 
-开发基线为 Node.js 24.19.0、Vite+ 1.2.0、pnpm 12.11.2。Node 开发版本保存在 `.node-version`；包消费者的兼容范围随实现单独验证。
+开发基线为 Node.js 24.19.0、Vite+ 1.2.0、pnpm 12.11.2。Node 开发版本保存在 `.node-version`；包消费者的兼容范围需要单独验证。
 
 安装 [Vite+ CLI](https://viteplus.dev/guide/global-cli) 后执行：
 
@@ -27,28 +25,16 @@ vp install --frozen-lockfile
 vp run ready
 ```
 
-常用命令：
+`ready` 依次执行格式、lint、类型检查、各包测试及 ESM 与声明构建。也可单独运行 `vp run check`、`vp run test`、`vp run build`。安装时启用 Git hooks，提交前对暂存文件执行检查。
 
-```sh
-vp run check
-vp run build
-vp run test
-```
+## 文档
 
-`check` 包含格式、lint 和类型检查；`test` 递归执行各包的测试；`build` 通过 `vp pack` 构建各库的 ESM 与声明。`ready` 按检查、测试、构建的顺序执行。两个包均包含行为与类型验证。
-
-安装时的 `prepare` 脚本通过 `vp config` 启用 Git hooks，提交前运行 `vp staged`，对暂存文件执行 `vp check --fix`。
-
-全部包保持 private。库构建和工具链使用 [Vite+](https://github.com/voidzero-dev/vite-plus)，不额外引入独立任务调度器。
-
-## 设计与分支
-
-- [组成与抽象边界](docs/architecture.md)
-- [Parser 算法规范与当前契约](packages/parser/docs/README.md)
-- [Parser 使用示例](packages/parser/README.md)
-- [Core 使用示例](packages/core/README.md)
-- [单命令行为契约](packages/core/docs/command-contract.md)
-- [Vite+ 模板对照与工程约定](docs/toolchain.md)
-- [开发顺序](docs/roadmap.md)
-- [历史参考](docs/references.md)
-- [默认分支切换](docs/branch-transition.md)
+- [Core 使用说明](packages/core/README.md)
+- [命令组合与调用契约](packages/core/docs/command-contract.md)
+- [Parser 使用说明](packages/parser/README.md)
+- [Parser 文档索引](packages/parser/docs/README.md)
+- [接口模型](docs/interfaces.md)
+- [架构与职责](docs/architecture.md)
+- [工程约定](docs/toolchain.md)
+- [后续验收方向](docs/roadmap.md)
+- [参考资料](docs/references.md)
