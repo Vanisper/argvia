@@ -36,9 +36,6 @@ export function createCommand<
     );
   }
   const metadata = snapshotMetadata(definition);
-  if (metadata.name.startsWith("-")) {
-    throw new CommandSpecError("A command name must not start with '-'.", "name");
-  }
   const handler = definition.handler;
   if (typeof handler !== "function") {
     throw new CommandSpecError("A command needs a handler function.", "handler");

@@ -35,9 +35,6 @@ export function createGroup<
     );
   }
   const metadata = snapshotMetadata(definition);
-  if (metadata.name.startsWith("-")) {
-    throw new CommandSpecError("A command name must not start with '-'.", "name");
-  }
   const children = definition.commands;
   if (!Array.isArray(children)) {
     throw new CommandSpecError("commands must be an array of command nodes.", "commands");

@@ -1,6 +1,6 @@
 # @argvia/parser
 
-独立解析已分词的 `argv`，保留参数归属、出现历史和输入来源。包保持 private。完整行为见 [解析契约](docs/contract.md)。
+将已分词的 `argv` 解析为选项值和位置参数，保留参数归属、出现记录和输入来源。
 
 ## 独立解析
 
@@ -11,7 +11,7 @@ const parser = createParser([
   { long: "name", short: "n", parse: values.string(), required: true },
   { long: "count", short: "c", parse: values.integer({ min: 1 }), defaultWhenAbsent: 1 },
   { long: "tag", short: "t", parse: values.string(), repeat: "append" },
-  { long: "help", short: "h", parse: values.boolean(), defaultWhenBare: true },
+  { long: "verbose", short: "v", parse: values.boolean(), defaultWhenBare: true },
 ]);
 
 const result = parser.parse(["--name", "alice", "-c2", "--tag=a", "--tag=b", "file.txt"]);
@@ -21,42 +21,38 @@ const result = parser.parse(["--name", "alice", "-c2", "--tag=a", "--tag=b", "fi
 // result.positionals: ["file.txt"]
 ```
 
-长名、短名、短簇与显式绑定共用同一份定义。有裸用默认值的选项默认不消费下一参数；`createParser(options, { greedy: true })` 可启用贪婪分离值。显式绑定始终只取得一个值。
+长名、短名、短簇与显式绑定共用同一份定义。默认情况下，带有 `defaultWhenBare` 的选项裸用时采用该默认值；`createParser(options, { greedy: true })` 让它尝试消费下一个参数。显式绑定每次取得一个值。
 
 ## 准备与完成
 
 ```ts
-const prepared = parser.prepare(["--help"]);
+const prepared = parser.prepare(["--name", "alice"]);
 // prepared.values.name: string | undefined，尚未检查 required
 
-if (prepared.provided.help && prepared.values.help === true) {
-  // 由调用者显示帮助，不必调用 complete
-} else {
-  const result = parser.complete(prepared);
-  // result.values.name: string，缺席时 complete 抛出 MissingRequired
-}
+const completed = parser.complete(prepared);
+// completed.values.name: string，已经通过 required 检查
 ```
 
-`prepare` 已完成值解析、默认值与重复处理，只延期必填检查。`complete` 只接受本实例的准备结果，不重新扫描或调用值回调。未知选项、缺值、非法值和重复错误仍即时报告；该流程不保证帮助覆盖输入错误。
-
-`--name=--help` 将字符串 `--help` 绑定给 name；`-- --help` 将它保留为位置参数。parser 不解释帮助或命令的产品含义。
+`prepare` 完成绑定、值解析、默认值与重复处理，返回可供检查的准备结果；未知选项、缺值、非法值和重复错误在这一阶段报告。`complete` 接受本实例的准备结果，检查必填选项并收窄结果类型，缺席时抛出 `MissingRequired`。完成阶段复用已有值与来源记录，成功结果会被缓存。
 
 ## 值与错误
 
-`values` 提供 string、integer、boolean、enumeration、union、normalized 工厂，也可直接提供 `ValueParser<T>`。正常的值域拒绝返回 `{ ok: false, expected }`；程序异常直接传播。类型化默认值不重新解析，调用者应将默认对象视为只读。
+`values` 提供 `string`、`integer`、`boolean`、`enumeration`、`union`、`normalized` 工厂，也可直接提供 `ValueParser<T>`。值域拒绝返回 `{ ok: false, expected }`；回调抛出的异常原样传播。默认值已经属于目标值域，调用者应将默认对象视为只读。
 
-需要将同一值协议用于其他字段时，可公开调用 `snapshotValueParser` 固定回调引用，再用 `decodeValue(parser, raw)` 获得 normalized 与解析结果；core 的命名位置参数也使用这条路径。
+`snapshotValueParser` 用于固定回调引用，`decodeValue(parser, raw)` 按同一协议执行归一化与解析，返回 `normalized` 和解析结果。
 
-缺席且无默认值的非追加选项省略 `values` 中的键。合法 `undefined` 用 `Object.hasOwn(result.values, name)` 或对应 `records` 区分。`provided` 表示显式出现，不因默认值而变为 true。
+缺席且无默认值的非追加选项省略 `values` 中的键。合法 `undefined` 用 `Object.hasOwn(result.values, name)` 或对应 `records` 区分。`provided` 专门记录选项是否显式出现。
 
 用法错误为 `ParseError`，通过 `code` 读取类别与结构化上下文。`OptionSpecError` 与 `ValueParserContractError` 分别表示定义错误和值回调返回协议错误。
 
-结果提供归约后的 `records`、完整 `occurrences`、`positionalTokens` 与 `terminatorIndex`；原始值不会被归一化覆盖。容器和记录浅冻结，不深复制解析值或默认对象。
+结果提供归约后的 `records`、完整 `occurrences`、`positionalTokens` 与 `terminatorIndex`，同时保留原始值和归一化值。容器和记录浅冻结，解析值与默认对象保持原引用。
 
 ## 文档
 
-[文档索引](docs/README.md) 汇总归档算法规范、当前解析契约及对应源码和测试。
+- [解析契约](docs/contract.md)：定义、消费规则、来源、分阶段调用与错误。
+- [解析策略与算法](docs/evaluation.md)：执行结构、不变量、复杂度与验证资产。
+- [原始算法规范](docs/algorithm.md)：归档研究资料。
 
 ## 开发
 
-在本包目录运行 `vp run check`、`vp run test`、`vp run build`；`vp run dev` 监听库构建。在仓库根目录运行 `vp run ready` 完成全部检查。该包不读取 Node 全局，测试直接使用源码，构建产物为 ESM 与类型声明。
+在本包目录运行 `vp run check`、`vp run test`、`vp run build`；`vp run dev` 监听库构建。测试直接使用源码，构建产物为 ESM 与类型声明。

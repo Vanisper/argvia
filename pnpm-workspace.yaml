@@ -1,8 +1,6 @@
 packages:
-  - apps/*
   - packages/*
   - playground/*
-  - tools/*
 
 catalogMode: prefer
 

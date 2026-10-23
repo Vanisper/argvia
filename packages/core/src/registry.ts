@@ -5,7 +5,7 @@ type PrepareAt = (argv: readonly string[], offset: number, path: readonly string
 
 const nodes = new WeakMap<CommandNode, PrepareAt>();
 
-/** 节点只通过创建入口注册，组合时不接纳伪造的执行对象 */
+/** 将公开节点关联到内部路由入口 */
 export function registerNode(node: CommandNode, prepare: PrepareAt): void {
   nodes.set(node, prepare);
 }
@@ -14,7 +14,7 @@ export function isRegisteredNode(value: unknown): value is CommandNode {
   return typeof value === "object" && value !== null && nodes.has(value as CommandNode);
 }
 
-/** 内部路由传递根 argv 与偏移，子节点不复制或重新解释路径前缀 */
+/** 通过节点入口沿用本次调用的 argv、偏移和路径 */
 export function prepareNode(
   node: CommandNode,
   argv: readonly string[],

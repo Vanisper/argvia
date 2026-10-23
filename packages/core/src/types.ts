@@ -9,7 +9,7 @@ import type {
   ValueParser,
 } from "@argvia/parser";
 
-/** 选项解析规则与帮助元数据共用一份声明 */
+/** 选项解析规则与展示元数据共用一份声明 */
 export interface CommandOption<T = unknown> extends OptionSpec<T> {
   readonly description?: string;
   readonly valueName?: string;
@@ -132,7 +132,7 @@ export interface ParsedPositionals<A extends readonly ArgumentSpec[]> {
   readonly records: ArgumentRecords<A>;
 }
 
-/** 处理函数只接收业务字段，完整来源由 source 保留 */
+/** 完整命令输入及其选项、位置参数来源 */
 export interface CommandInput<
   S extends readonly CommandOption[],
   A extends readonly ArgumentSpec[],
@@ -145,7 +145,7 @@ export interface CommandInput<
   };
 }
 
-/** 命令描述保留运行时值与回调引用，不要求可 JSON 序列化 */
+/** 节点名称、说明与自定义元数据 */
 export interface NodeMetadata<N extends string = string> {
   readonly name: N;
   readonly description?: string;

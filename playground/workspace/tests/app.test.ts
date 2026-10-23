@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import { ParseError } from "@argvia/parser";
 
-import { createWorkspace, renderDescription, type WorkspaceServices } from "../src/app.ts";
+import { createWorkspace, type WorkspaceServices } from "../src/app.ts";
+import { renderHelp } from "../src/help.ts";
 import { ArgumentError, createCommand } from "@argvia/core";
 
 function workspace() {
@@ -123,7 +124,7 @@ describe("应用自行组合命令信息与执行", () => {
     expect(build.options.find((option) => option.long === "tag")).toMatchObject({
       repeat: "append",
     });
-    expect(renderDescription(build, ["tool", "assets", "build"])).toContain("--tag <tag>");
+    expect(renderHelp(build, ["tool", "assets", "build"])).toContain("--tag <tag>");
     expect(app.build).not.toHaveBeenCalled();
     expect(app.inspect).not.toHaveBeenCalled();
     const decode = vi.fn(() => ({ ok: true as const, value: 1 }));
@@ -133,7 +134,7 @@ describe("应用自行组合命令信息与执行", () => {
       options: [{ long: "value", parse: { parse: decode } }],
       handler,
     });
-    expect(renderDescription(custom.definition, ["custom"])).toContain("--value <value>");
+    expect(renderHelp(custom.definition, ["custom"])).toContain("--value <value>");
     expect(decode).not.toHaveBeenCalled();
     expect(handler).not.toHaveBeenCalled();
   });

@@ -43,7 +43,7 @@ export class ParseError extends Error implements ParseErrorDetails {
   }
 }
 
-/** 选项定义本身无效，不属于用户输入错误 */
+/** 选项声明违反定义约束 */
 export class OptionSpecError extends TypeError {
   readonly option?: string;
 
@@ -54,7 +54,7 @@ export class OptionSpecError extends TypeError {
   }
 }
 
-/** 值回调违反返回协议；回调自身抛出的异常不包装 */
+/** 值回调的返回值违反协议 */
 export class ValueParserContractError extends TypeError {
   constructor(message: string) {
     super(message);

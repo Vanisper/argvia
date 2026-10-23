@@ -1,6 +1,7 @@
 import { values } from "@argvia/parser";
 
-import { createCommand, createGroup, type NodeDescription } from "@argvia/core";
+import { createCommand, createGroup } from "@argvia/core";
+import { renderHelp } from "./help.ts";
 
 export interface WorkspaceServices {
   build(input: {
@@ -15,47 +16,7 @@ export type WorkspaceResult =
   | { readonly kind: "text"; readonly text: string }
   | { readonly kind: "result"; readonly value: string };
 
-/** 应用可用同一描述树生成终端帮助、文档或其他展示 */
-export function renderDescription(definition: NodeDescription, path: readonly string[]): string {
-  const positionals =
-    definition.kind === "group"
-      ? ["<command>"]
-      : definition.arguments.map((argument) => {
-          const name = `${argument.name}${argument.variadic ? "..." : ""}`;
-          return argument.required ? `<${name}>` : `[${name}]`;
-        });
-  const lines = [`Usage: ${[...path, ...positionals, "[options]"].join(" ")}`];
-  if (definition.description) lines.push("", definition.description);
-  if (definition.kind === "group") {
-    lines.push("", "Commands:");
-    for (const command of definition.commands) {
-      lines.push(`  ${command.name}${command.description ? `  ${command.description}` : ""}`);
-    }
-  } else if (definition.arguments.length > 0) {
-    lines.push("", "Arguments:");
-    for (const argument of definition.arguments) {
-      lines.push(`  ${argument.name}${argument.description ? `  ${argument.description}` : ""}`);
-    }
-  }
-  if (definition.options.length > 0) {
-    lines.push("", "Options:");
-    for (const option of definition.options) {
-      const names = [
-        option.short === undefined ? undefined : `-${option.short}`,
-        `--${option.long}`,
-      ]
-        .filter((name) => name !== undefined)
-        .join(", ");
-      const value = Object.hasOwn(option, "defaultWhenBare")
-        ? ""
-        : ` <${option.valueName ?? option.long}>`;
-      lines.push(`  ${names}${value}${option.description ? `  ${option.description}` : ""}`);
-    }
-  }
-  return lines.join("\n");
-}
-
-/** 依赖通过应用工厂注入，输出与进程状态由宿主决定 */
+/** 创建命令树并将处理函数连接到注入的服务 */
 export function createWorkspace(services: WorkspaceServices) {
   const controls = [
     {
@@ -123,7 +84,7 @@ export function createWorkspace(services: WorkspaceServices) {
   async function run(argv: readonly string[]): Promise<WorkspaceResult> {
     const prepared = tree.prepare(argv);
     if (prepared.options.help === true) {
-      return { kind: "text", text: renderDescription(prepared.definition, prepared.path) };
+      return { kind: "text", text: renderHelp(prepared.definition, prepared.path) };
     }
     if (prepared.options.version === true) {
       const version = tree.definition.metadata?.version;
@@ -132,7 +93,7 @@ export function createWorkspace(services: WorkspaceServices) {
     }
     const completed = prepared.complete();
     if (completed.kind === "group") {
-      return { kind: "text", text: renderDescription(completed.definition, completed.path) };
+      return { kind: "text", text: renderHelp(completed.definition, completed.path) };
     }
     const result = await completed.execute();
     return { kind: "result", value: result.value };

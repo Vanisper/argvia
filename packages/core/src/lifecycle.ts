@@ -16,7 +16,7 @@ export function once<T>(operation: () => T): () => T {
   };
 }
 
-/** 复制调用输入，阶段间不再读取调用者的可变数组 */
+/** 复制并冻结 argv，使各阶段使用同一份输入 */
 export function snapshotArgv(input: readonly string[]): readonly string[] {
   if (!Array.isArray(input)) {
     throw new TypeError("argv must be an array of strings.");
