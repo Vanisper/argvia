@@ -27,8 +27,8 @@ describe("位置参数绑定", () => {
       handler: (input) => input,
     });
     const result = command.parse(["1", "--verbose", "name", "--", "-tail", ""]);
-    expect(result.kind).toBe("input");
-    if (result.kind !== "input") throw new Error("Expected input");
+    expect(result.kind).toBe("command");
+    if (result.kind !== "command") throw new Error("Expected command");
     expect(result.input.arguments).toEqual({ count: 1, name: "name", rest: ["-tail", ""] });
     expect(result.input.source.arguments.provided).toEqual({ count: true, name: true, rest: true });
     expect(result.input.source.arguments.records).toEqual({
@@ -52,7 +52,7 @@ describe("位置参数绑定", () => {
     });
     const first = command.parse([]);
     const second = command.parse([]);
-    if (first.kind !== "input" || second.kind !== "input") throw new Error("Expected input");
+    if (first.kind !== "command" || second.kind !== "command") throw new Error("Expected command");
     expect(Object.hasOwn(first.input.arguments, "name")).toBe(false);
     expect(first.input.arguments.rest).toEqual([]);
     expect(first.input.arguments.rest).not.toBe(second.input.arguments.rest);
@@ -68,7 +68,7 @@ describe("位置参数绑定", () => {
     });
     expect(argumentError(() => command.parse([]), "MissingArgument").argument).toBe("files");
     expect(command.parse(["a", "b"])).toMatchObject({
-      kind: "input",
+      kind: "command",
       input: { arguments: { files: ["a", "b"] } },
     });
   });
@@ -149,8 +149,8 @@ describe("位置参数绑定", () => {
       handler: (input) => input,
     });
     const result = command.parse(["false", "0", "", "anything"]);
-    expect(result.kind).toBe("input");
-    if (result.kind !== "input") throw new Error("Expected input");
+    expect(result.kind).toBe("command");
+    if (result.kind !== "command") throw new Error("Expected command");
     expect(result.input.arguments).toEqual({
       false: false,
       zero: 0,
@@ -176,7 +176,7 @@ describe("位置参数绑定", () => {
       handler: (input) => input,
     });
     const result = command.parse(["first", "second"]);
-    if (result.kind !== "input") throw new Error("Expected input");
+    if (result.kind !== "command") throw new Error("Expected command");
     expect(Object.hasOwn(result.input.arguments, "__proto__")).toBe(true);
     expect(result.input.arguments.__proto__).toBe("first");
     expect(result.input.arguments.constructor).toBe("second");

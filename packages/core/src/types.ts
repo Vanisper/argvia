@@ -4,7 +4,8 @@ import type {
   ParseConfig,
   ParsedArguments,
   ParsedValues,
-  Repeat,
+  PreparedArguments,
+  PreparedValues,
   ValueParser,
 } from "@argvia/parser";
 
@@ -144,63 +145,151 @@ export interface CommandInput<
   };
 }
 
-export interface HelpOption {
-  readonly long: string;
-  readonly short?: string;
+/** 命令描述保留运行时值与回调引用，不要求可 JSON 序列化 */
+export interface NodeMetadata<N extends string = string> {
+  readonly name: N;
   readonly description?: string;
-  readonly valueName?: string;
-  readonly required: boolean;
-  readonly repeat: Repeat;
-  readonly bare: boolean;
+  readonly metadata?: Readonly<Record<string, unknown>>;
 }
 
-export interface HelpArgument {
-  readonly name: string;
-  readonly description?: string;
-  readonly required: boolean;
-  readonly variadic: boolean;
+export type OptionDescriptions<S extends readonly CommandOption[]> = {
+  readonly [K in keyof S]: CommandOption<InferValue<S[K]>>;
+};
+
+export type ArgumentDescriptions<A extends readonly ArgumentSpec[]> = {
+  readonly [K in keyof A]: ArgumentSpec<InferValue<A[K]>>;
+};
+
+export interface CommandDescription<
+  S extends readonly CommandOption[] = readonly CommandOption[],
+  A extends readonly ArgumentSpec[] = readonly ArgumentSpec[],
+  N extends string = string,
+> extends NodeMetadata<N> {
+  readonly kind: "command";
+  readonly options: OptionDescriptions<S>;
+  readonly arguments: ArgumentDescriptions<A>;
+  readonly parser: Readonly<Required<ParseConfig>>;
 }
 
-/** 结构化帮助不依赖终端或输出流 */
-export interface HelpDocument {
-  readonly name: string;
-  readonly description?: string;
-  readonly usage: string;
-  readonly options: readonly HelpOption[];
-  readonly arguments: readonly HelpArgument[];
+export interface GroupDescription<
+  S extends readonly CommandOption[] = readonly CommandOption[],
+  N extends string = string,
+> extends NodeMetadata<N> {
+  readonly kind: "group";
+  readonly options: OptionDescriptions<S>;
+  readonly commands: readonly NodeDescription[];
+  readonly parser: Readonly<Required<ParseConfig>>;
 }
 
-export interface HelpRequest {
-  readonly kind: "help";
-  readonly document: HelpDocument;
+export type NodeDescription = CommandDescription | GroupDescription;
+
+/** 一次完成调用可以显式执行；每次 execute 都独立调用 handler */
+export interface ParsedCommand<
+  S extends readonly CommandOption[] = readonly CommandOption[],
+  A extends readonly ArgumentSpec[] = readonly ArgumentSpec[],
+  R = unknown,
+  N extends string = string,
+> {
+  readonly kind: "command";
+  readonly name: N;
+  readonly definition: CommandDescription<S, A, N>;
+  readonly path: readonly string[];
+  readonly input: CommandInput<S, A>;
+  execute(): Promise<ExecutedCommand<S, A, R, N>>;
 }
 
-export interface VersionRequest {
-  readonly kind: "version";
-  readonly version: string;
+export interface ParsedGroup<
+  S extends readonly CommandOption[] = readonly CommandOption[],
+  N extends string = string,
+> {
+  readonly kind: "group";
+  readonly name: N;
+  readonly definition: GroupDescription<S, N>;
+  readonly path: readonly string[];
+  readonly input: CommandInput<S, readonly []>;
 }
 
-/** parse 不调用处理函数，帮助和版本也不产生业务输入 */
-export type CommandParseResult<
-  S extends readonly CommandOption[],
-  A extends readonly ArgumentSpec[],
-> = { readonly kind: "input"; readonly input: CommandInput<S, A> } | HelpRequest | VersionRequest;
+export type ParsedNode = ParsedCommand | ParsedGroup;
 
-/** 等待处理函数完成，普通返回值不解释为输出或退出码 */
-export type CommandExecuteResult<
+/** 准备结果已有选项归属；complete 缓存完整校验的成功或失败 */
+export interface PreparedCommand<
+  S extends readonly CommandOption[] = readonly CommandOption[],
+  A extends readonly ArgumentSpec[] = readonly ArgumentSpec[],
+  R = unknown,
+  N extends string = string,
+> {
+  readonly kind: "command";
+  readonly name: N;
+  readonly definition: CommandDescription<S, A, N>;
+  readonly path: readonly string[];
+  readonly options: PreparedValues<S>;
+  readonly source: PreparedArguments<S>;
+  complete(): ParsedCommand<S, A, R, N>;
+}
+
+export interface PreparedGroup<
+  S extends readonly CommandOption[] = readonly CommandOption[],
+  N extends string = string,
+> {
+  readonly kind: "group";
+  readonly name: N;
+  readonly definition: GroupDescription<S, N>;
+  readonly path: readonly string[];
+  readonly options: PreparedValues<S>;
+  readonly source: PreparedArguments<S>;
+  complete(): ParsedGroup<S, N>;
+}
+
+export type PreparedNode = PreparedCommand | PreparedGroup;
+
+/** 返回值保持业务含义，坐标与 path 属于本次调用 */
+export interface ExecutedCommand<
+  S extends readonly CommandOption[] = readonly CommandOption[],
+  A extends readonly ArgumentSpec[] = readonly ArgumentSpec[],
+  R = unknown,
+  N extends string = string,
+> {
+  readonly kind: "executed";
+  readonly name: N;
+  readonly definition: CommandDescription<S, A, N>;
+  readonly path: readonly string[];
+  readonly input: CommandInput<S, A>;
+  readonly value: Awaited<R>;
+}
+
+/** 可组合的节点，定义树与每次调用的状态互相独立 */
+export interface CommandNode {
+  readonly definition: NodeDescription;
+  prepare(argv: readonly string[]): PreparedNode;
+  parse(argv: readonly string[]): ParsedNode;
+  execute(argv: readonly string[]): Promise<ExecutedCommand>;
+}
+
+export interface Command<
   S extends readonly CommandOption[],
   A extends readonly ArgumentSpec[],
   R,
-> =
-  | { readonly kind: "executed"; readonly input: CommandInput<S, A>; readonly value: Awaited<R> }
-  | HelpRequest
-  | VersionRequest;
+  N extends string = string,
+> extends CommandNode {
+  readonly definition: CommandDescription<S, A, N>;
+  prepare(argv: readonly string[]): PreparedCommand<S, A, R, N>;
+  parse(argv: readonly string[]): ParsedCommand<S, A, R, N>;
+  execute(argv: readonly string[]): Promise<ExecutedCommand<S, A, R, N>>;
+}
 
-/** 同一对象提供独立解析与解析后执行，两次调用彼此独立 */
-export interface Command<S extends readonly CommandOption[], A extends readonly ArgumentSpec[], R> {
-  readonly help: HelpDocument;
-  parse(argv: readonly string[]): CommandParseResult<S, A>;
-  execute(argv: readonly string[]): Promise<CommandExecuteResult<S, A, R>>;
+export type PreparedOf<C extends CommandNode> = ReturnType<C["prepare"]>;
+export type ParsedOf<C extends CommandNode> = ReturnType<C["parse"]>;
+export type ExecutedOf<C extends CommandNode> = Awaited<ReturnType<C["execute"]>>;
+
+export interface CommandGroup<
+  S extends readonly CommandOption[],
+  C extends readonly CommandNode[],
+  N extends string = string,
+> extends CommandNode {
+  readonly definition: GroupDescription<S, N>;
+  prepare(argv: readonly string[]): PreparedGroup<S, N> | PreparedOf<C[number]>;
+  parse(argv: readonly string[]): ParsedGroup<S, N> | ParsedOf<C[number]>;
+  execute(argv: readonly string[]): Promise<ExecutedOf<C[number]>>;
 }
 
 type RequiredSpecField<Key extends string, Specs extends readonly unknown[]> = [Specs] extends [
@@ -209,19 +298,28 @@ type RequiredSpecField<Key extends string, Specs extends readonly unknown[]> = [
   ? unknown
   : { readonly [K in Key]: Specs };
 
-/** 输入类型来自声明；非空规格必须同时提供对应的声明字段 */
 export type CommandDefinition<
   S extends readonly CommandOption[],
   A extends readonly ArgumentSpec[],
   R,
-> = {
-  readonly name: string;
-  readonly description?: string;
-  readonly help?: boolean;
-  readonly version?: string;
+  N extends string = string,
+> = NodeMetadata<N> & {
   readonly parser?: ParseConfig;
   readonly options?: S;
   readonly arguments?: A;
   readonly handler: (input: NoInfer<CommandInput<S, A>>) => R;
+  readonly commands?: never;
 } & RequiredSpecField<"options", NoInfer<S>> &
   RequiredSpecField<"arguments", NoInfer<A>>;
+
+export type GroupDefinition<
+  S extends readonly CommandOption[],
+  C extends readonly CommandNode[],
+  N extends string = string,
+> = NodeMetadata<N> & {
+  readonly parser?: ParseConfig;
+  readonly options?: S;
+  readonly commands: C;
+  readonly arguments?: never;
+  readonly handler?: never;
+} & RequiredSpecField<"options", NoInfer<S>>;

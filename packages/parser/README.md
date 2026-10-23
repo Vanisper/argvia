@@ -1,6 +1,6 @@
 # @argvia/parser
 
-独立解析已分词的 `argv`，保留参数归属、出现历史和输入来源。第一轮接口保持 private，不承诺历史原型兼容。完整行为见 [解析契约](docs/contract.md)。
+独立解析已分词的 `argv`，保留参数归属、出现历史和输入来源。包保持 private。完整行为见 [解析契约](docs/contract.md)。
 
 ## 独立解析
 
