@@ -1,0 +1,20 @@
+{
+  "name": "@argvia/playground-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An executable CLI example built with Argvia's public APIs.",
+  "type": "module",
+  "scripts": {
+    "test": "vp test",
+    "check": "vp check"
+  },
+  "dependencies": {
+    "@argvia/core": "workspace:*",
+    "@argvia/parser": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

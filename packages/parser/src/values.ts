@@ -27,7 +27,7 @@ function callbacks<T>(parser: ValueParser<T>): ValueParser<T> {
   return normalize === undefined ? { parse } : { normalize, parse };
 }
 
-/** 冻结当前回调引用；回调调用不绑定原解析器作为 this */
+/** 冻结当前回调引用；回调作为独立函数调用 */
 export function snapshotValueParser<T>(parser: ValueParser<T>): ValueParser<T> {
   return Object.freeze(callbacks(parser));
 }
@@ -104,7 +104,7 @@ function integer(
   });
 }
 
-/** 接受大小写敏感的显式布尔文本，不执行真假值转换 */
+/** 精确匹配大小写敏感的布尔文本 */
 function boolean(): ValueParser<boolean> {
   const truthy = new Set(["true", "1", "yes", "on"]);
   const falsy = new Set(["false", "0", "no", "off"]);

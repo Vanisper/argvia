@@ -1,4 +1,4 @@
-/** 命令或字段声明无效，不属于命令行输入错误 */
+/** 命令或字段声明违反定义约束 */
 export class CommandSpecError extends TypeError {
   readonly field?: string;
 
@@ -11,7 +11,7 @@ export class CommandSpecError extends TypeError {
 
 export type ArgumentErrorCode = "MissingArgument" | "UnexpectedArgument" | "InvalidArgument";
 
-/** 下标继续使用传入命令的 argv 坐标 */
+/** 下标相对于本次公开调用传入的 argv */
 export interface ArgumentErrorDetails {
   readonly argument?: string;
   readonly token?: string;

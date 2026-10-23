@@ -25,7 +25,7 @@ interface MetadataInput {
   readonly metadata?: unknown;
 }
 
-/** 元数据仅复制字段容器，任意对象值继续由调用方持有 */
+/** 保存节点名称、说明和元数据的浅快照，对象值保留原引用 */
 export function snapshotMetadata(definition: MetadataInput): {
   readonly name: string;
   readonly description?: string;
@@ -40,16 +40,20 @@ export function snapshotMetadata(definition: MetadataInput): {
   ) {
     throw new CommandSpecError("metadata must be an object.", "metadata");
   }
-  return Object.freeze({
+  const snapshot = Object.freeze({
     name,
     ...(description === undefined ? {} : { description }),
     ...(metadata === undefined
       ? {}
       : { metadata: Object.freeze(Object.assign(Object.create(null), metadata)) }),
   });
+  if (name.startsWith("-")) {
+    throw new CommandSpecError("A command name must not start with '-'.", "name");
+  }
+  return snapshot;
 }
 
-/** 保存认可的规格与值回调，默认值存在性使用自有属性判断 */
+/** 校验并快照选项规格，以自有属性保留默认值的存在性 */
 export function snapshotOptions<const S extends readonly CommandOption[]>(
   options: S,
 ): OptionDescriptions<S> {

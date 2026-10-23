@@ -9,7 +9,7 @@ class CallbackThrown {
   }
 }
 
-/** 保存回调及结果协议读取时的异常，避免将其误当成 parser 生成的坐标错误 */
+/** 区分回调异常与解析诊断，保留回调及结果读取异常的原始身份 */
 export function guardValueParser<T>(parser: ValueParser<T>): ValueParser<T> {
   const { normalize, parse } = parser;
   return Object.freeze({

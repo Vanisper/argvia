@@ -11,12 +11,12 @@ export interface ValueParser<T> {
 
 export type Repeat = "last" | "append" | "error";
 
-/** 贪婪消费只作用于分离值，不扩展显式绑定 */
+/** 分离值的贪婪消费配置；显式绑定每次取得一个值 */
 export interface ParseConfig {
   readonly greedy?: boolean;
 }
 
-/** 长短名称不含前缀；默认值已经属于解析后的值域 */
+/** 使用无前缀的长短名称；默认值属于解析后的值域 */
 export interface OptionSpec<T = unknown> {
   readonly long: string;
   readonly short?: string;
@@ -55,7 +55,7 @@ type EffectiveRepeat<O> = "repeat" extends keyof O
 
 type ReducedValue<O, R> = R extends "append" ? readonly OccurrenceValue<O>[] : RetainedValue<O>;
 
-/** 未提供通过属性缺席表达，不额外混入解析值的类型 */
+/** 归约后的选项值类型；缺席由结果属性的可选性表达 */
 export type OptionValue<O extends OptionSpec> = O extends unknown
   ? ReducedValue<O, EffectiveRepeat<O>>
   : never;
@@ -130,7 +130,7 @@ export type ParsedValues<S extends readonly OptionSpec[]> = Values<S, true>;
 /** 已绑定并归约的值，尚未证明必填选项存在 */
 export type PreparedValues<S extends readonly OptionSpec[]> = Values<S, false>;
 
-/** 默认值不改变选项是否显式出现 */
+/** 每个选项是否在输入中显式出现 */
 export type ProvidedOptions<S extends readonly OptionSpec[]> = {
   readonly [Name in CertainNames<S>]: boolean;
 } & {
@@ -148,7 +148,7 @@ export interface ValueRecord<T = unknown> {
   readonly index: number | null;
 }
 
-/** 每次显式出现独立记录，后续覆盖不会删除历史 */
+/** 按输入顺序保留全部显式出现及其值贡献 */
 export interface Occurrence<Name extends string = string, T = unknown> {
   readonly option: Name;
   readonly spelling: string;
@@ -195,7 +195,7 @@ export interface PreparedArguments<S extends readonly OptionSpec[]> extends Argu
   readonly [argumentStage]: "prepared";
 }
 
-/** 完成必填检查后可用；不能由准备结果直接赋值得到 */
+/** 已通过必填检查的解析结果 */
 export interface ParsedArguments<S extends readonly OptionSpec[]> extends ArgumentData<S, true> {
   readonly [argumentStage]: "parsed";
 }
