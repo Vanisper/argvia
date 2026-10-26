@@ -13,15 +13,15 @@ export function failure(expected: string, reason?: string): ParseResult<never> {
 
 function callbacks<T>(parser: ValueParser<T>): ValueParser<T> {
   if ((typeof parser !== "object" || parser === null) && typeof parser !== "function") {
-    throw new ValueParserContractError("值解析器必须提供 parse 函数");
+    throw new ValueParserContractError("A value parser must provide a parse function.");
   }
 
   const { normalize, parse } = parser;
   if (normalize !== undefined && typeof normalize !== "function") {
-    throw new ValueParserContractError("值解析器的 normalize 必须是函数");
+    throw new ValueParserContractError("A value parser's normalize must be a function.");
   }
   if (typeof parse !== "function") {
-    throw new ValueParserContractError("值解析器的 parse 必须是函数");
+    throw new ValueParserContractError("A value parser's parse must be a function.");
   }
 
   return normalize === undefined ? { parse } : { normalize, parse };
@@ -35,20 +35,22 @@ export function snapshotValueParser<T>(parser: ValueParser<T>): ValueParser<T> {
 function normalizeValue(normalize: (this: void, raw: string) => string, raw: string): string {
   const normalized = normalize(raw);
   if (typeof normalized !== "string") {
-    throw new ValueParserContractError("normalize 必须返回字符串");
+    throw new ValueParserContractError("normalize must return a string.");
   }
   return normalized;
 }
 
 function checkedResult<T>(result: ParseResult<T>): ParseResult<T> {
   if (typeof result !== "object" || result === null) {
-    throw new ValueParserContractError("parse 必须返回带有 ok 判别字段的结果对象");
+    throw new ValueParserContractError(
+      "parse must return a result object with an ok discriminant.",
+    );
   }
 
   const { ok } = result;
   if (ok === true) {
     if (!Object.hasOwn(result, "value")) {
-      throw new ValueParserContractError("成功结果必须包含自有 value 字段");
+      throw new ValueParserContractError("A successful result must have an own value field.");
     }
     return success(result.value);
   }
@@ -56,15 +58,15 @@ function checkedResult<T>(result: ParseResult<T>): ParseResult<T> {
   if (ok === false) {
     const { expected, reason } = result;
     if (typeof expected !== "string") {
-      throw new ValueParserContractError("失败结果的 expected 必须是字符串");
+      throw new ValueParserContractError("A failed result's expected must be a string.");
     }
     if (reason !== undefined && typeof reason !== "string") {
-      throw new ValueParserContractError("失败结果的 reason 必须是字符串");
+      throw new ValueParserContractError("A failed result's reason must be a string.");
     }
     return failure(expected, reason);
   }
 
-  throw new ValueParserContractError("结果的 ok 必须是 true 或 false");
+  throw new ValueParserContractError("A result's ok must be true or false.");
 }
 
 /** 按顺序归一化并解析一次；回调异常原样向外传播 */
@@ -89,7 +91,7 @@ function integer(
   const min = options.min === undefined ? Number.MIN_SAFE_INTEGER : options.min;
   const max = options.max === undefined ? Number.MAX_SAFE_INTEGER : options.max;
   if (!Number.isSafeInteger(min) || !Number.isSafeInteger(max) || min > max) {
-    throw new RangeError("整数边界必须是有序的安全整数");
+    throw new RangeError("Integer bounds must be ordered safe integers.");
   }
 
   const expected = `safe integer [${min}, ${max}]`;
@@ -122,11 +124,11 @@ function enumeration<const T extends readonly [string, ...string[]]>(
   choices: T,
 ): ValueParser<T[number]> {
   if (!Array.isArray(choices) || choices.length === 0) {
-    throw new RangeError("枚举至少需要一个候选值");
+    throw new RangeError("An enumeration needs at least one candidate.");
   }
   const members = [...choices];
   if (members.some((choice) => typeof choice !== "string")) {
-    throw new TypeError("枚举候选值必须是字符串");
+    throw new TypeError("Enumeration candidates must be strings.");
   }
 
   const accepted = new Set<string>(members);
@@ -144,7 +146,7 @@ function union<const T extends readonly [ValueParser<unknown>, ...ValueParser<un
   parsers: T,
 ): ValueParser<ParsedValue<T[number]>> {
   if (!Array.isArray(parsers) || parsers.length === 0) {
-    throw new RangeError("联合值域至少需要一个解析器");
+    throw new RangeError("A union needs at least one value parser.");
   }
   const candidates = [...parsers].map((parser) => snapshotValueParser(parser));
 
@@ -167,7 +169,7 @@ function normalized<T>(
   normalize: (this: void, raw: string) => string,
 ): ValueParser<T> {
   if (typeof normalize !== "function") {
-    throw new ValueParserContractError("normalize 必须是函数");
+    throw new ValueParserContractError("normalize must be a function.");
   }
   const { normalize: childNormalize, parse } = snapshotValueParser(child);
   return Object.freeze({
