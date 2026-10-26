@@ -1,7 +1,16 @@
 import { describe, expect, it, vi } from "vite-plus/test";
-import { OptionSpecError, ParseError, values } from "@argvia/parser";
+import { ParseError, values } from "@argvia/parser";
 
 import { ArgumentError, CommandSpecError, createCommand } from "../src/index.ts";
+
+function errorFrom(run: () => unknown): unknown {
+  try {
+    run();
+  } catch (error) {
+    return error;
+  }
+  throw new Error("Expected an error");
+}
 
 describe("命令解析与执行", () => {
   it("parse 产生已完成调用，execute 保留返回值且每次独立解析", async () => {
@@ -162,8 +171,8 @@ describe("命令声明与输入检查", () => {
     );
   });
 
-  it("选项规格校验由 parser 统一执行", () => {
-    expect(() =>
+  it("选项规格错误以 CommandSpecError 报告，并指向具体字段", () => {
+    const duplicate = errorFrom(() =>
       createCommand({
         name: "duplicate",
         options: [
@@ -172,8 +181,10 @@ describe("命令声明与输入检查", () => {
         ],
         handler: () => 0,
       }),
-    ).toThrow(OptionSpecError);
-    expect(() =>
+    );
+    expect(duplicate).toBeInstanceOf(CommandSpecError);
+    expect((duplicate as CommandSpecError).field).toBe("options[1].long");
+    const defaults = errorFrom(() =>
       createCommand({
         name: "defaults",
         options: [
@@ -181,7 +192,9 @@ describe("命令声明与输入检查", () => {
         ],
         handler: () => 0,
       }),
-    ).toThrow(OptionSpecError);
+    );
+    expect(defaults).toBeInstanceOf(CommandSpecError);
+    expect((defaults as CommandSpecError).field).toBe("options[0].defaultWhenAbsent");
   });
 
   it("未声明位置参数时，额外输入是位置用法错误", () => {

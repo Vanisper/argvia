@@ -21,7 +21,7 @@ core 接收不含程序名的 `readonly string[]`，从命令树选择节点，�
 
 `CommandOption<T>` 沿用选项规格，增加可选的 `description/valueName`。`ArgumentSpec<T>` 包含必填的 `name/parse`、可选的 `description/required/variadic`；required 与 variadic 默认 false。选项值键为 `long`，位置值键为 `name`。
 
-节点名、字段名和值标签必须非空，不含空白、控制字符或尖括号、方括号；节点名不能以 `-` 开头。长短选项名称同时遵守选项规格约束。共享字段采用声明复用，每个节点独立保存规格与回调快照；分组选项只作用于该分组。
+节点名、字段名和值标签必须非空，不含空白、控制字符或尖括号、方括号；节点名不能以 `-` 开头。长短选项名称先按 parser 的名称规则检查，再应用上述展示约束，两类问题都在节点创建阶段报告。共享字段采用声明复用，每个节点独立保存规格与回调快照；分组选项只作用于该分组。
 
 ## 定义描述
 
@@ -122,10 +122,13 @@ const shared = [
 
 | 错误               | 类别与详情                                                                                                            |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `CommandSpecError` | 节点、组合或字段声明无效；field 指向适用的定义字段                                                                    |
+| `CommandSpecError` | 节点、组合或字段声明无效，包括选项规格；field 指向适用的定义字段                                                      |
 | `RouteError`       | `UnknownCommand` 或 `MissingCommand`；包含 path、可选子命令 commands 及适用的 token/index                             |
 | `ArgumentError`    | `MissingArgument`、`UnexpectedArgument` 或 `InvalidArgument`；包含适用的 argument、token、index、raw、expected/reason |
 
-路由和位置错误以 code 区分类别，详情同时保存在冻结的 details 中。选项及值协议错误沿用 parser 的公共错误类型，选项用法错误的坐标按上述规则映射。
+路由和位置错误以 code 区分类别，详情同时保存在冻结的 details 中。选项相关的错误按发生阶段分开：
+
+- 规格错误在节点创建时由 core 检查，统一报告为 `CommandSpecError`，`field` 指向 `options[i]` 及其子字段
+- 用法错误在运行阶段产生，沿用 parser 的 `ParseError`，坐标按上述规则映射
 
 值回调和 handler 自己抛出的异常原样传播，包括它们主动抛出的输入错误对象；core 只映射自己调用解析器所产生的输入诊断。

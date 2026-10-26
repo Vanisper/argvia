@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vite-plus/test";
-import { OptionSpecError, success, values } from "@argvia/parser";
+import { success, values } from "@argvia/parser";
 import { CommandSpecError, createCommand } from "../src/index.ts";
 
 describe("命令定义快照", () => {
@@ -137,14 +137,14 @@ describe("命令定义快照", () => {
     });
     expect(() =>
       createCommand({ name: "invalid", options: [inherited], handler: () => 0 }),
-    ).toThrow(OptionSpecError);
+    ).toThrow(CommandSpecError);
     expect(() =>
       createCommand({
         name: "invalid",
         options: [{ long: "name", parse: values.string(), required: true, defaultWhenAbsent: "x" }],
         handler: () => 0,
       }),
-    ).toThrow(OptionSpecError);
+    ).toThrow(CommandSpecError);
   });
 });
 
