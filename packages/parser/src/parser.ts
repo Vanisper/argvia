@@ -1,4 +1,5 @@
 import { OptionSpecError, ParseError } from "./errors.ts";
+import { longNameProblem, shortNameProblem } from "./names.ts";
 import type {
   CheckedOptions,
   Occurrence,
@@ -75,25 +76,15 @@ export function createParser<const S extends readonly OptionSpec[]>(
       throw new OptionSpecError("Each option definition must be an object.");
     }
     const long = definition.long;
-    if (
-      typeof long !== "string" ||
-      long.length === 0 ||
-      long.startsWith("-") ||
-      long.includes("=")
-    ) {
-      throw new OptionSpecError(
-        "A long name must be nonempty, must not start with '-', and must not contain '='.",
-      );
-    }
+    const longProblem = longNameProblem(long);
+    if (longProblem !== undefined) throw new OptionSpecError(`A long name ${longProblem}.`);
     const invalid = (message: string): never => {
       throw new OptionSpecError(message, long);
     };
     const short = definition.short;
-    if (
-      short !== undefined &&
-      (typeof short !== "string" || Array.from(short).length !== 1 || short === "-")
-    ) {
-      invalid("A short name must be one Unicode code point other than '-'.");
+    if (short !== undefined) {
+      const shortProblem = shortNameProblem(short);
+      if (shortProblem !== undefined) invalid(`A short name ${shortProblem}.`);
     }
     if (longNames.has(long)) invalid(`Duplicate long name ${quote(long)}.`);
     if (short !== undefined && shortNames.has(short))

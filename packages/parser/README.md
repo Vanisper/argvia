@@ -45,6 +45,8 @@ const completed = parser.complete(prepared);
 
 用法错误为 `ParseError`，通过 `code` 读取类别与结构化上下文。`OptionSpecError` 与 `ValueParserContractError` 分别表示定义错误和值回调返回协议错误。
 
+`longNameProblem`、`shortNameProblem` 判定选项名称语法，返回不合规的原因短语。上层包可复用这组规则，再自行补足字段上下文。
+
 结果提供归约后的 `records`、完整 `occurrences`、`positionalTokens` 与 `terminatorIndex`，同时保留原始值和归一化值。容器和记录浅冻结，解析值与默认对象保持原引用。
 
 ## 文档

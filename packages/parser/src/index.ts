@@ -1,4 +1,5 @@
 export { createParser } from "./parser.ts";
+export { longNameProblem, shortNameProblem } from "./names.ts";
 export { OptionSpecError, ParseError, ValueParserContractError } from "./errors.ts";
 export type { ParseErrorCode, ParseErrorDetails } from "./errors.ts";
 export { decodeValue, failure, snapshotValueParser, success, values } from "./values.ts";
